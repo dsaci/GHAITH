@@ -1,0 +1,129 @@
+import React, { createContext, useContext, useEffect } from 'react';
+import type { User, UserRole } from '../types';
+import { normalizeUserRole } from '../types';
+import { getCurrentUser } from '../data/mockData';
+import { useAuthStore } from '../store/authStore';
+import { authService } from '../services/auth.service';
+import { loginNotificationService } from '../services/loginNotification.service';
+import { isSupabaseConfigured } from '../lib/supabase';
+
+interface AuthContextType {
+    user: User | null;
+    login: (username: string, password: string) => Promise<{ ok: boolean; redirect?: string; error?: string }>;
+    logout: () => Promise<void>;
+    hasRole: (roles: UserRole[]) => boolean;
+    canAccess: (resource: string, action: 'create' | 'read' | 'update' | 'delete') => boolean;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+const ROLE_PERMISSIONS: Record<UserRole, Record<string, string[]>> = {
+    president: { '*': ['create', 'read', 'update', 'delete'], portal_admin: ['read', 'update'] },
+    vice_president: {
+        '*': ['create', 'read', 'update'],
+        finance: ['create', 'read', 'update'],
+        portal_admin: ['read', 'update'],
+    },
+    treasurer: {
+        finance: ['create', 'read', 'update', 'delete'],
+        '*': ['read'],
+        portal_admin: ['read', 'update'],
+    },
+    board_member: {
+        '*': ['read'],
+        beneficiaries: ['create', 'read', 'update'],
+        activities: ['create', 'read', 'update'],
+        documents: ['create', 'read', 'update'],
+        members: ['read'],
+        administration: ['read', 'update'],
+        requests: ['read'],
+        reports: ['read'],
+        planning: ['read'],
+        archive: ['read'],
+    },
+    branch_president: {
+        dashboard: ['read'],
+        beneficiaries: ['create', 'read', 'update'],
+        finance: ['create', 'read', 'update'],
+        documents: ['read', 'update'],
+        members: ['read', 'update'],
+        activities: ['read'],
+        archive: ['read'],
+        administration: ['read', 'update'],
+        requests: ['read'],
+        reports: ['read'],
+        planning: ['read'],
+    },
+    member: {
+        dashboard: ['read'],
+        activities: ['read'],
+        archive: ['read'],
+    },
+};
+
+function hydrateMockUserFromStorage(): void {
+    const stored = getCurrentUser();
+    if (!stored) return;
+    const u = { ...stored, role: normalizeUserRole(stored.role as string) };
+    useAuthStore.getState().setInternalUser(u);
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const user = useAuthStore((s) => s.internalUser);
+
+    useEffect(() => {
+        (async () => {
+            if (isSupabaseConfigured) {
+                try {
+                    await authService.restoreSession();
+                } catch (err) {
+                    console.error('Session restore failed. DB likely empty.', err);
+                }
+                if (!useAuthStore.getState().internalUser && !useAuthStore.getState().externalSession) {
+                    hydrateMockUserFromStorage();
+                }
+            } else {
+                hydrateMockUserFromStorage();
+            }
+        })();
+    }, []);
+
+    const login = async (username: string, password: string) => {
+        try {
+            await authService.loginInternal(username, password);
+            const user = useAuthStore.getState().internalUser;
+            if (user) {
+                loginNotificationService.recordLogin(user.id);
+            }
+            sessionStorage.setItem('justLoggedIn', 'true');
+            return { ok: true };
+        } catch (err: any) {
+            console.error('Login error', err);
+            return { ok: false, error: err.message || 'فشل تسجيل الدخول' };
+        }
+    };
+
+    const logout = async () => {
+        await authService.logout();
+    };
+
+    const hasRole = (roles: UserRole[]): boolean => (user ? roles.includes(user.role) : false);
+
+    const canAccess = (resource: string, action: string): boolean => {
+        if (!user) return false;
+        const perms = ROLE_PERMISSIONS[user.role];
+        const specific = perms[resource] || [];
+        const wildcard = perms['*'] || [];
+        return specific.includes(action) || wildcard.includes(action);
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, login, logout, hasRole, canAccess }}>{children}</AuthContext.Provider>
+    );
+}
+
+export const useAuth = () => {
+    const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error('useAuth must be inside AuthProvider');
+    return ctx;
+};
