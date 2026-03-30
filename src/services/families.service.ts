@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Family } from '../types';
-import { authService } from './auth.service';
+import * as authLib from '../lib/auth';
 
 const logService = (action: string, data?: any) => {
     console.log(`[FamiliesService] ${action}:`, data);
@@ -184,7 +184,7 @@ export const familiesService = {
 
         // 4. Log Audit Action
         logService('Logging audit action for benefit', benefitData.id);
-        await authService.logAuditAction('create', 'family_benefits', benefitData.id, { 
+        await authLib.logAuditAction('create', 'family_benefits', benefitData.id, { 
             family_id: familyId, 
             type: benefit.benefit_type,
             amount: benefit.amount 

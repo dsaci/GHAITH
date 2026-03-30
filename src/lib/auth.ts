@@ -1,8 +1,11 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import type { User, ExternalSession, PortalType, ExternalUserStatus } from '../types';
+import type { User, ExternalSession, PortalType, ExternalUserStatus, UserRole } from '../types';
 import { normalizeUserRole } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { loginUser, logoutUser } from '../data/mockData';
+
+// User role names used throughout the app
+export type UnifiedRole = UserRole;
 
 type InternalProfileRow = {
     id: string;
@@ -34,6 +37,37 @@ function rowToUser(sessionEmail: string, row: InternalProfileRow, usernameHint?:
         isActive: row.is_active !== false,
     };
 }
+
+/**
+ * Log activity for administrative tracking
+ */
+export async function logAuditAction(
+    action: 'login' | 'logout' | 'create' | 'update' | 'delete', 
+    resourceType: string, 
+    resourceId?: string, 
+    details?: any
+) {
+    if (!isSupabaseConfigured) return;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    const beneficiarySession = useAuthStore.getState().beneficiarySession;
+    
+    const log = {
+        user_id: user?.id || beneficiarySession?.familyId || null,
+        user_type: user ? 'internal' : (beneficiarySession ? 'beneficiary' : null),
+        action: action,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        new_values: details ? JSON.stringify(details) : null,
+    };
+
+    try {
+        await supabase.from('audit_logs').insert(log);
+    } catch (e) {
+        console.error('Audit log failed:', e);
+    }
+}
+
 
 export function getPostInternalLoginPath(role: string): string {
     const r = normalizeUserRole(role);
@@ -75,6 +109,13 @@ export async function loginInternal(
     }
 
     const user = rowToUser(auth.user.email || email, profile as InternalProfileRow, emailOrUsername);
+    
+    // Update last login in background
+    supabase.from('user_profiles').update({ last_login: new Date().toISOString() }).eq('id', auth.user.id);
+    
+    // Log audit
+    logAuditAction('login', 'session');
+
     useAuthStore.getState().setInternalUser(user);
     localStorage.setItem('ghaith_user', JSON.stringify(user));
 
@@ -272,4 +313,50 @@ export async function restoreSessionFromSupabase(): Promise<void> {
             fullName: row.full_name,
         });
     }
+}
+
+/**
+ * Direct login for beneficiaries using registration number and phone
+ */
+export async function loginBeneficiary(regNo: string, phone: string) {
+    if (!isSupabaseConfigured) return { ok: false, error: 'Offline mode' };
+
+    const cleanRegNo = regNo.trim();
+    const cleanPhone = phone.trim();
+
+    // Use RPC to bypass direct SELECT RLS for auth checking
+    const { data, error } = await supabase.rpc('verify_beneficiary', {
+        p_reg_no: cleanRegNo,
+        p_phone: cleanPhone
+    });
+
+    if (error) {
+        console.error('Beneficiary login error:', error);
+        throw new Error('حدث خطأ في الاتصال بقاعدة البيانات');
+    }
+    
+    const family = data && data.length > 0 ? data[0] : null;
+    if (!family) throw new Error('بيانات الدخول غير صحيحة. يرجى التأكد من رقم التسجيل ورقم الهاتف.');
+
+    const session = {
+        familyId: family.id,
+        familyName: family.family_name,
+        registrationNumber: family.registration_number,
+    };
+
+    useAuthStore.getState().setBeneficiarySession(session);
+    logAuditAction('login', 'beneficiary_portal', session.familyId);
+    localStorage.setItem('ghaith_beneficiary_session', JSON.stringify(session));
+
+    return { ok: true, session };
+}
+
+export async function restoreBeneficiarySession() {
+    const saved = localStorage.getItem('ghaith_beneficiary_session');
+    if (saved) {
+        const session = JSON.parse(saved);
+        useAuthStore.getState().setBeneficiarySession(session);
+        return true;
+    }
+    return false;
 }

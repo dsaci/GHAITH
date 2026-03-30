@@ -3,7 +3,7 @@ import type { User, UserRole } from '../types';
 import { normalizeUserRole } from '../types';
 import { getCurrentUser } from '../data/mockData';
 import { useAuthStore } from '../store/authStore';
-import { authService } from '../services/auth.service';
+import * as authLib from '../lib/auth';
 import { loginNotificationService } from '../services/loginNotification.service';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -75,10 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             if (isSupabaseConfigured) {
                 try {
-                    await authService.restoreSession();
-                    await authService.restoreBeneficiarySession();
+                    await authLib.restoreSessionFromSupabase();
+                    await authLib.restoreBeneficiarySession();
                 } catch (err) {
-                    console.error('Session restore failed. DB likely empty.', err);
+                    console.error('Session restore failed.', err);
                 }
                 const s = useAuthStore.getState();
                 if (!s.internalUser && !s.externalSession && !s.beneficiarySession) {
@@ -92,13 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (username: string, password: string) => {
         try {
-            await authService.loginInternal(username, password);
+            const res = await authLib.loginInternal(username, password);
+            if (!res.ok) return res;
+            
             const user = useAuthStore.getState().internalUser;
             if (user) {
                 loginNotificationService.recordLogin(user.id);
             }
             sessionStorage.setItem('justLoggedIn', 'true');
-            return { ok: true };
+            return { ok: true, redirect: res.redirect };
         } catch (err: any) {
             console.error('Login error', err);
             return { ok: false, error: err.message || 'فشل تسجيل الدخول' };
@@ -106,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        await authService.logout();
+        await authLib.logout();
     };
 
     const hasRole = (roles: UserRole[]): boolean => (user ? roles.includes(user.role) : false);

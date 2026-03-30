@@ -12,7 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { authService } from '../../services/auth.service';
+import * as authLib from '../../lib/auth';
 
 export default function BeneficiaryLayout() {
     const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function BeneficiaryLayout() {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     const handleLogout = async () => {
-        await authService.logout();
+        await authLib.logout();
         localStorage.removeItem('ghaith_beneficiary_session');
         navigate('/beneficiary/login', { replace: true });
     };

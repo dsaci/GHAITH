@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../../services/auth.service';
+import * as authLib from '../../lib/auth';
 import { Hash, Phone, LogIn, ShieldCheck, Loader2, AlertCircle, Home, CheckCircle2, Heart } from 'lucide-react';
 import { Button } from '../../components/ui';
 
@@ -15,7 +15,7 @@ export default function BeneficiaryLoginPage() {
     useEffect(() => {
         // Auto-redirect if already logged in as beneficiary
         const checkSession = async () => {
-            const hasSession = await authService.restoreBeneficiarySession();
+            const hasSession = await authLib.restoreBeneficiarySession();
             if (hasSession) {
                 navigate('/beneficiary/dashboard', { replace: true });
             }
@@ -34,7 +34,7 @@ export default function BeneficiaryLoginPage() {
         setError('');
 
         try {
-            await authService.loginBeneficiary(regNo, phone);
+            await authLib.loginBeneficiary(regNo, phone);
             setIsSuccess(true);
             setTimeout(() => {
                 navigate('/beneficiary/dashboard', { replace: true });
