@@ -85,6 +85,21 @@ export default function DashboardPage() {
             const now = new Date();
             const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+            // Use a helper to prevent one failing query from breaking the whole dashboard
+            const wrap = async (promise: Promise<any>) => {
+                try {
+                    const res = await promise;
+                    if (res.error) {
+                        console.warn('Dashboard partial fetch error:', res.error);
+                        return { data: null, count: 0 };
+                    }
+                    return res;
+                } catch (e) {
+                    console.error('Dashboard fatal fetch error:', e);
+                    return { data: null, count: 0 };
+                }
+            };
+
             const [
                 { count: totalFamilies },
                 { count: activeMembers },
@@ -95,17 +110,17 @@ export default function DashboardPage() {
                 { data: recentActs },
                 portalRes
             ] = await Promise.all([
-                supabase.from('families').select('*', { count: 'exact', head: true }).eq('is_deleted', false),
-                supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('is_deleted', false),
-                supabase.from('transactions').select('amount, transaction_type').eq('is_deleted', false),
-                supabase.from('portal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-                supabase.from('family_benefits').select('*', { count: 'exact', head: true }).gte('benefit_date', firstOfMonth),
-                supabase.from('occasions').select('*', { count: 'exact', head: true }).gte('start_date', firstOfMonth).eq('status', 'completed'),
-                supabase.from('recent_activities').select('*').order('created_at', { ascending: false }).limit(6),
-                getPortalRequests({ status: 'pending' })
+                wrap(supabase.from('families').select('*', { count: 'exact', head: true }).eq('is_deleted', false)),
+                wrap(supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('is_deleted', false)),
+                wrap(supabase.from('transactions').select('amount, transaction_type').eq('is_deleted', false)),
+                wrap(supabase.from('portal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+                wrap(supabase.from('family_benefits').select('*', { count: 'exact', head: true }).gte('benefit_date', firstOfMonth)),
+                wrap(supabase.from('occasions').select('*', { count: 'exact', head: true }).gte('start_date', firstOfMonth).eq('status', 'completed')),
+                wrap(supabase.from('recent_activities').select('*').order('created_at', { ascending: false }).limit(6)),
+                wrap(getPortalRequests({ status: 'pending' }))
             ]);
 
-            const portalReqs = (portalRes as any).data || [];
+            const portalReqs = (portalRes as any)?.data || [];
             setRecentRequests(portalReqs.slice(0, 5));
 
             const income = transactions?.filter((t: any) => t.transaction_type === 'income').reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
@@ -125,7 +140,7 @@ export default function DashboardPage() {
             if (recentActs) setActivities(recentActs);
 
         } catch (error) {
-            console.error('Error fetching dashboard stats:', error);
+            console.error('Error in fetchDashboardData:', error);
         } finally {
             setLoading(false);
         }
