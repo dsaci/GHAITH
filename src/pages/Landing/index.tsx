@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
     Heart,
@@ -23,81 +24,100 @@ export default function LandingPage() {
     const navigate = useNavigate();
     const [selectedAmount, setSelectedAmount] = useState<string>('1000 دج');
     const [showBankDetails, setShowBankDetails] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-[#f5f7fa] font-['Cairo']" dir="rtl">
             {/* SECTION 1: NAVBAR */}
-            <nav className="sticky top-0 z-[100] h-[70px] bg-white border-b border-[#e2e8f0] shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex items-center px-4 md:px-8">
-                <div className="flex items-center gap-3 flex-1">
-                    <div className="w-[50px] h-[50px] bg-[#3dd163] rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(61,209,99,0.25)] border-2 border-white">
-                        <img
-                            src="/assets/images/logo.png"
-                            alt="جمعية غيث"
-                            className="w-[38px] h-[38px] object-contain brightness-0 invert"
-                        />
+            <nav className="sticky top-0 z-[100] bg-white border-b border-[#e2e8f0] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <div className="flex items-center h-[60px] md:h-[70px] px-4 md:px-8">
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                        <div className="w-[40px] h-[40px] md:w-[50px] md:h-[50px] bg-[#3dd163] rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(61,209,99,0.25)] border-2 border-white">
+                            <img src="/assets/images/logo.png" alt="جمعية غيث" className="w-[28px] h-[28px] md:w-[38px] md:h-[38px] object-contain brightness-0 invert" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[14px] md:text-[17px] font-bold text-[#1e3a5f] leading-tight truncate">{ASSOCIATION_INFO.name}</span>
+                            <span className="text-[10px] md:text-[11px] text-[#64748b] font-medium hidden sm:block">{ASSOCIATION_INFO.type} — {ASSOCIATION_INFO.location}</span>
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-[17px] font-bold text-[#1e3a5f] leading-tight">{ASSOCIATION_INFO.name}</span>
-                        <span className="text-[11px] text-[#64748b] font-medium">{ASSOCIATION_INFO.type} — {ASSOCIATION_INFO.location}</span>
+
+                    <div className="hidden lg:flex items-center gap-8 flex-1 justify-center">
+                        <a href="#" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">الرئيسية</a>
+                        <a href="#about" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">من نحن</a>
+                        <a href="#domains" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">مجالات العمل</a>
+                        <a href="#campaigns" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">أنشطتنا</a>
+                        <a href="#support" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">دعم الجمعية</a>
                     </div>
-                </div>
 
-                <div className="hidden md:flex items-center gap-8 flex-1 justify-center">
-                    <a href="#" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">الرئيسية</a>
-                    <a href="#about" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">من نحن</a>
-                    <a href="#domains" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">مجالات العمل</a>
-                    <a href="#campaigns" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">أنشطتنا</a>
-                    <a href="#support" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">دعم الجمعية</a>
-                </div>
+                    <div className="hidden sm:flex items-center gap-2 md:gap-3">
+                        <button onClick={() => navigate('/beneficiary/login')} className="bg-[#3dd163] hover:bg-[#28a849] text-white px-3 md:px-5 py-[7px] rounded-xl text-[12px] md:text-[14px] font-bold transition-all shadow-md shadow-[#3dd163]/20 flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5" />
+                            <span className="hidden md:inline">فضاء المستفيد</span>
+                            <span className="md:hidden">المستفيد</span>
+                        </button>
+                        <button onClick={() => navigate('/login')} className="bg-white hover:bg-gray-50 text-[#1e3a5f] border border-gray-200 px-3 md:px-5 py-[7px] rounded-xl text-[12px] md:text-[14px] font-bold transition-all">
+                            لوحة القيادة
+                        </button>
+                    </div>
 
-                <div className="flex-1 flex justify-end gap-3">
-                    <button
-                        onClick={() => navigate('/beneficiary/login')}
-                        className="bg-[#3dd163] hover:bg-[#28a849] text-white px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all shadow-md shadow-[#3dd163]/20 flex items-center gap-2"
-                    >
-                        <Users className="w-4 h-4" />
-                        فضاء المستفيد
-                    </button>
-                    <button
-                        onClick={() => navigate('/login')}
-                        className="bg-white hover:bg-gray-50 text-[#1e3a5f] border border-gray-200 px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all"
-                    >
-                       لوحة القيادة
+                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden p-2 text-[#1e3a5f]">
+                        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
                 </div>
+
+                {/* Mobile Menu */}
+                {mobileMenuOpen && (
+                    <div className="sm:hidden border-t border-[#e2e8f0] bg-white px-4 pb-4 pt-3 space-y-3 animate-in slide-in-from-top">
+                        <div className="flex flex-col gap-2">
+                            <a href="#" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-bold text-[#1a2332] py-2 border-b border-gray-100">الرئيسية</a>
+                            <a href="#about" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-bold text-[#1a2332] py-2 border-b border-gray-100">من نحن</a>
+                            <a href="#domains" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-bold text-[#1a2332] py-2 border-b border-gray-100">مجالات العمل</a>
+                            <a href="#campaigns" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-bold text-[#1a2332] py-2 border-b border-gray-100">أنشطتنا</a>
+                            <a href="#support" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-bold text-[#1a2332] py-2">دعم الجمعية</a>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <button onClick={() => navigate('/beneficiary/login')} className="flex-1 bg-[#3dd163] text-white py-2.5 rounded-xl text-[13px] font-bold">
+                                فضاء المستفيد
+                            </button>
+                            <button onClick={() => navigate('/login')} className="flex-1 bg-white text-[#1e3a5f] border border-gray-200 py-2.5 rounded-xl text-[13px] font-bold">
+                                لوحة القيادة
+                            </button>
+                        </div>
+                    </div>
+                )}
             </nav>
 
             {/* SECTION 2: HERO */}
-            <section className="relative min-h-[85vh] bg-gradient-to-br from-[#1e3a5f] via-[#2a4f7c] to-[#1a5276] overflow-hidden flex items-center">
+            <section className="relative min-h-[60vh] md:min-h-[85vh] bg-gradient-to-br from-[#1e3a5f] via-[#2a4f7c] to-[#1a5276] overflow-hidden flex items-center">
                 {/* Decorative elements */}
                 <div className="absolute bottom-[-150px] left-[-150px] w-[300px] h-[300px] bg-[#3dd163]/[0.08] rounded-full"></div>
                 <div className="absolute top-[-75px] right-[-75px] w-[150px] h-[150px] bg-[#3b9dd4]/[0.12] rounded-full"></div>
 
-                <div className="container mx-auto px-4 md:px-8 py-12 relative z-10">
+                <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 relative z-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                         {/* Right Column (Text) */}
-                        <div className="text-right flex flex-col items-start gap-6 animate-fade-in">
+                        <div className="text-right flex flex-col items-start gap-4 md:gap-6 animate-fade-in">
                             <span className="bg-[#3dd163]/15 text-[#3dd163] px-4 py-1.5 rounded-full text-[13px] font-medium border border-[#3dd163]/20">
                                 معتمدة بتاريخ {ASSOCIATION_INFO.registrationDate} — رقم {ASSOCIATION_INFO.registrationNumber}
                             </span>
-                            <h1 className="text-[34px] md:text-[52px] font-extrabold text-white leading-[1.2]">
+                            <h1 className="text-[26px] sm:text-[34px] md:text-[52px] font-extrabold text-white leading-[1.2]">
                                 معاً نبني مجتمعاً <br />
                                 <span className="text-[#3dd163]">أكثر تضامناً</span>
                             </h1>
-                            <p className="text-[17px] text-white/75 leading-[1.8] max-w-[480px]">
+                            <p className="text-[14px] sm:text-[17px] text-white/75 leading-[1.7] max-w-[480px]">
                                 {ASSOCIATION_INFO.description}
                             </p>
 
-                            <div className="flex flex-wrap gap-4 mt-2">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-2 w-full sm:w-auto">
                                 <button
                                     onClick={() => navigate('/request')}
-                                    className="bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] px-7 py-3.5 rounded-xl text-[15px] font-bold shadow-lg shadow-[#3dd163]/20 transition-all transform hover:scale-[1.02]"
+                                    className="bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] px-6 md:px-7 py-3 md:py-3.5 rounded-xl text-[14px] md:text-[15px] font-bold shadow-lg shadow-[#3dd163]/20 transition-all transform hover:scale-[1.02] text-center"
                                 >
                                     تقديم طلب مساعدة
                                 </button>
                                     <button
                                     onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
-                                    className="bg-transparent border-2 border-white/40 hover:border-white hover:bg-white/10 text-white px-7 py-3.5 rounded-xl text-[15px] transition-all flex items-center gap-2"
+                                    className="bg-transparent border-2 border-white/40 hover:border-white hover:bg-white/10 text-white px-6 md:px-7 py-3 md:py-3.5 rounded-xl text-[14px] md:text-[15px] transition-all flex items-center justify-center gap-2"
                                 >
                                     <BookOpen className="w-4 h-4" />
                                     تعرف علينا أكثر
@@ -105,9 +125,9 @@ export default function LandingPage() {
                             </div>
 
                             {/* Stats row */}
-                            <div className="flex items-center gap-8 md:gap-12 mt-8 pt-8 border-t border-white/10 w-full md:w-auto">
+                            <div className="flex items-center gap-5 sm:gap-8 md:gap-12 mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/10 w-full md:w-auto">
                                 <div className="flex flex-col">
-                                    <span className="text-[32px] font-extrabold text-[#3dd163]">500+</span>
+                                    <span className="text-[24px] sm:text-[32px] font-extrabold text-[#3dd163]">500+</span>
                                     <span className="text-[13px] text-white/60">عائلة مستفيدة</span>
                                 </div>
                                 <div className="w-[1px] h-10 bg-white/10"></div>
@@ -118,7 +138,7 @@ export default function LandingPage() {
                                 </div>
                                 <div className="w-[1px] h-10 bg-white/10"></div>
                                 <div className="flex flex-col">
-                                    <span className="text-[32px] font-extrabold text-[#3dd163]">15</span>
+                                    <span className="text-[24px] sm:text-[32px] font-extrabold text-[#3dd163]">15</span>
                                     <span className="text-[13px] text-white/60">فرع بلدي</span>
                                 </div>
                             </div>
@@ -188,7 +208,7 @@ export default function LandingPage() {
             {/* SECTION 3: ABOUT US */}
             <section id="about" className="py-20 bg-white">
                 <div className="container mx-auto px-4 md:px-8">
-                    <div className="flex flex-col md:flex-row items-center gap-16">
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
                         <div className="flex-1 relative">
                             <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#3dd163]/5 rounded-full blur-3xl"></div>
                             <div className="relative rounded-[40px] overflow-hidden shadow-2xl border-8 border-white">
@@ -212,9 +232,9 @@ export default function LandingPage() {
                         <div className="flex-1 space-y-8">
                             <div>
                                 <span className="text-[#3dd163] font-bold text-[14px] tracking-wider mb-3 block">تعرف على غيث</span>
-                                <h2 className="text-[34px] md:text-[44px] font-black text-[#1e3a5f] leading-tight">غايتنا رسم البسمة <br />في كل بيت مسيلي</h2>
+                                <h2 className="text-[26px] sm:text-[34px] md:text-[44px] font-black text-[#1e3a5f] leading-tight">غايتنا رسم البسمة <br />في كل بيت مسيلي</h2>
                             </div>
-                            <p className="text-[#64748b] text-[18px] leading-relaxed italic border-r-4 border-[#3dd163] pr-6">
+                            <p className="text-[#64748b] text-[15px] sm:text-[18px] leading-relaxed italic border-r-4 border-[#3dd163] pr-4 sm:pr-6">
                                 "{ASSOCIATION_INFO.description}"
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -268,13 +288,13 @@ export default function LandingPage() {
                         <span className="bg-[#3dd163]/15 text-[#3dd163] px-4 py-1.5 rounded-full text-[13px] font-bold mb-4 inline-block tracking-wide">
                             مجالات عملنا
                         </span>
-                        <h2 className="text-[36px] font-bold text-[#1e3a5f] mt-2">نعمل في أربعة محاور رئيسية</h2>
+                        <h2 className="text-[26px] sm:text-[36px] font-bold text-[#1e3a5f] mt-2">نعمل في أربعة محاور رئيسية</h2>
                         <p className="text-[#64748b] mt-4 max-w-[550px] mx-auto text-[15px] leading-relaxed">
                             نسعى إلى تحقيق التكافل الاجتماعي من خلال برامج متكاملة تخدم شرائح مختلفة من المجتمع
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1200px] mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-[1200px] mx-auto">
                         {/* Card 1 */}
                         <div className="group bg-white rounded-[24px] p-7 border border-[#e2e8f0] border-b-[4px] border-b-[#3dd163] hover:translate-y-[-6px] hover:shadow-[0_15px_35px_rgba(61,209,99,0.12)] transition-all duration-300">
                             <div className="w-[60px] h-[60px] rounded-[18px] bg-[#3dd163]/10 flex items-center justify-center text-[#3dd163] mb-6 group-hover:bg-[#3dd163] group-hover:text-white transition-all">
@@ -328,7 +348,7 @@ export default function LandingPage() {
                     <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
                         <div className="text-right">
                             <span className="text-[#3dd163] font-bold text-[14px] mb-3 block">مبادراتنا الموسمية</span>
-                            <h2 className="text-[36px] font-extrabold text-[#1e3a5f]">أحدث حملاتنا الميدانية</h2>
+                            <h2 className="text-[26px] sm:text-[36px] font-extrabold text-[#1e3a5f]">أحدث حملاتنا الميدانية</h2>
                             <div className="w-20 h-1.5 bg-[#3dd163] rounded-full mt-4"></div>
                         </div>
                         <p className="text-[#64748b] max-w-[450px] text-[15px] leading-relaxed">
@@ -375,7 +395,7 @@ export default function LandingPage() {
                             <span className="w-2 h-2 bg-red-400 rounded-full inline-block" style={{ animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' }}></span>
                             حملة جمع تبرعات مفتوحة الآن
                         </span>
-                        <h2 className="text-[38px] md:text-[46px] font-black text-white leading-tight">
+                        <h2 className="text-[24px] sm:text-[32px] md:text-[46px] font-black text-white leading-tight">
                             ساهم في اقتناء <span className="text-[#3dd163]">سيارة نفعية</span> <br className="hidden md:block" /> لصالح جمعية غيث
                         </h2>
                         <p className="text-white/50 text-[16px] mt-4 max-w-[580px] mx-auto leading-relaxed">
@@ -542,16 +562,16 @@ export default function LandingPage() {
             {/* SECTION 6: SUPPORT & BANK DETAILS */}
             <section id="support" className="py-24 bg-[#f8fafc]">
                 <div className="container mx-auto px-4 md:px-8">
-                    <div className="bg-white rounded-[40px] shadow-xl overflow-hidden border border-[#e2e8f0]">
+                    <div className="bg-white rounded-[24px] md:rounded-[40px] shadow-xl overflow-hidden border border-[#e2e8f0]">
                         <div className="grid grid-cols-1 lg:grid-cols-2">
                             {/* LEFT: Supporting Info with Image */}
-                            <div className="p-10 md:p-16 flex flex-col justify-center gap-8 relative">
+                            <div className="p-6 sm:p-10 md:p-16 flex flex-col justify-center gap-6 md:gap-8 relative">
                                 <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#3dd163]/5 rounded-full blur-3xl"></div>
                                 
                                 <div className="flex flex-col gap-6">
                                     <div>
                                         <span className="text-[#3dd163] font-bold text-[14px] mb-3 block">ساهم معنا في العطاء</span>
-                                        <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#1e3a5f] leading-tight mb-4">كيف يمكنك دعم <br />مشاريع الجمعية؟</h2>
+                                        <h2 className="text-[24px] sm:text-[32px] md:text-[40px] font-extrabold text-[#1e3a5f] leading-tight mb-4">كيف يمكنك دعم <br />مشاريع الجمعية؟</h2>
                                         <p className="text-[#64748b] text-[16px] leading-relaxed mb-6">
                                             تبرعكم هو الغيث الذي يسقي الأمل في قلوب المحتاجين. يمكنكم المساهمة عبر الحسابات البنكية والبريدية الرسمية للجمعية.
                                         </p>
@@ -667,25 +687,25 @@ export default function LandingPage() {
                         <span className="bg-[#3dd163] text-[#1e3a5f] px-6 py-2 rounded-full text-[14px] font-black mb-8 inline-block shadow-lg shadow-[#3dd163]/20">
                             فرصة للتطوع
                         </span>
-                        <h2 className="text-[34px] md:text-[48px] font-black text-white mb-6 leading-tight">
+                        <h2 className="text-[24px] sm:text-[34px] md:text-[48px] font-black text-white mb-4 md:mb-6 leading-tight">
                             كن غيثاً أينما حل نفع <br />
                             <span className="text-[#3dd163]">انضم إلى فريق المتطوعين الآن</span>
                         </h2>
-                        <p className="text-white/70 text-[18px] mb-12 leading-relaxed">
+                        <p className="text-white/70 text-[14px] sm:text-[18px] mb-8 md:mb-12 leading-relaxed">
                             تعلن جمعية غيث عن فتح باب الانضمام إليها لكافة شباب الولاية والطلبة الراغبين في المشاركة في الأعمال التطوعية والإنسانية.
                         </p>
-                        <div className="flex flex-wrap gap-6 justify-center">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center w-full">
                             <button
                                 onClick={() => navigate('/volunteer')}
-                                className="bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] px-10 py-5 rounded-2xl text-[18px] font-black transition-all transform hover:scale-105 shadow-xl shadow-[#3dd163]/20"
+                                className="bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] px-8 md:px-10 py-4 md:py-5 rounded-2xl text-[15px] md:text-[18px] font-black transition-all transform hover:scale-105 shadow-xl shadow-[#3dd163]/20"
                             >
                                 تعبئة استمارة التطوع
                             </button>
                             <a
                                 href="tel:0654645867"
-                                className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 px-10 py-5 rounded-2xl text-[18px] font-bold transition-all flex items-center gap-3"
+                                className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 px-8 md:px-10 py-4 md:py-5 rounded-2xl text-[15px] md:text-[18px] font-bold transition-all flex items-center justify-center gap-3"
                             >
-                                <Phone className="w-6 h-6" />
+                                <Phone className="w-5 h-5 md:w-6 md:h-6" />
                                 اتصل بنا للمزيد
                             </a>
                         </div>
@@ -695,12 +715,12 @@ export default function LandingPage() {
 
             <footer className="bg-[#1e3a5f] pt-[80px] pb-6 px-4 md:px-8 border-t-8 border-[#3dd163]">
                 <div className="container mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16">
                         <div className="flex flex-col gap-4">
-                            <div className="w-24 h-24 bg-[#3dd163] rounded-full flex items-center justify-center p-4 mb-6 shadow-2xl border-4 border-white overflow-hidden">
+                            <div className="w-16 h-16 md:w-24 md:h-24 bg-[#3dd163] rounded-full flex items-center justify-center p-3 md:p-4 mb-4 md:mb-6 shadow-2xl border-4 border-white overflow-hidden">
                                 <img src="/assets/images/logo.png" alt="Logo" className="w-full h-full object-contain brightness-0 invert" />
                             </div>
-                            <span className="text-white text-[20px] font-black">جمعية غيث الولائية</span>
+                            <span className="text-white text-[16px] md:text-[20px] font-black">جمعية غيث الولائية</span>
                             <p className="text-white/60 text-[14px] leading-[1.8] font-medium">
                                 غيث الغد، يبدأ اليوم. نحن هنا لخدمة أهالينا في ولاية المسيلة بكل إخلاص وتفانٍ.
                             </p>
