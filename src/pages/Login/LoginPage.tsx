@@ -28,7 +28,7 @@ export default function LoginPage() {
             if (res.ok) {
                 navigate(res.redirect || '/dashboard');
             } else {
-                setError('بيانات الدخول غير صحيحة، يرجى التأكد من البريد الإلكتروني وكلمة المرور.');
+                setError(res.error || 'بيانات الدخول غير صحيحة، يرجى التأكد من البريد الإلكتروني وكلمة المرور.');
             }
         } catch (err: any) {
             setError(err.message || 'حدث خطأ غير متوقع أثناء تسجيل الدخول.');

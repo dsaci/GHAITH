@@ -53,7 +53,7 @@ export async function loginInternal(
 
     const email = emailOrUsername.includes('@')
         ? emailOrUsername
-        : `${emailOrUsername}@ghayth.local`;
+        : `${emailOrUsername}@ghaith.dz`;
 
     const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
         email,
