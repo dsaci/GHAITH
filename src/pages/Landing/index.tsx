@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Heart,
@@ -9,12 +10,19 @@ import {
     Phone,
     Mail,
     Facebook,
-    Instagram
+    Instagram,
+    Check,
+    ChevronDown,
+    Truck
 } from 'lucide-react';
 import { ASSOCIATION_INFO } from '../../data/associationInfo';
+import ghaithVan from '../../../1.jpg';
+import ghaith1 from '/assets/images/ghaith1.jpg';
 
 export default function LandingPage() {
     const navigate = useNavigate();
+    const [selectedAmount, setSelectedAmount] = useState<string>('1000 دج');
+    const [showBankDetails, setShowBankDetails] = useState(false);
 
     return (
         <div className="min-h-screen bg-[#f5f7fa] font-['Cairo']" dir="rtl">
@@ -54,7 +62,7 @@ export default function LandingPage() {
                         onClick={() => navigate('/login')}
                         className="bg-white hover:bg-gray-50 text-[#1e3a5f] border border-gray-200 px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all"
                     >
-                        دخول الإدارة
+                       لوحة القيادة
                     </button>
                 </div>
             </nav>
@@ -87,7 +95,11 @@ export default function LandingPage() {
                                 >
                                     تقديم طلب مساعدة
                                 </button>
-                                <button className="bg-transparent border-2 border-white/40 hover:border-white text-white px-7 py-3.5 rounded-xl text-[15px] transition-all">
+                                    <button
+                                    onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+                                    className="bg-transparent border-2 border-white/40 hover:border-white hover:bg-white/10 text-white px-7 py-3.5 rounded-xl text-[15px] transition-all flex items-center gap-2"
+                                >
+                                    <BookOpen className="w-4 h-4" />
                                     تعرف علينا أكثر
                                 </button>
                             </div>
@@ -100,8 +112,9 @@ export default function LandingPage() {
                                 </div>
                                 <div className="w-[1px] h-10 bg-white/10"></div>
                                 <div className="flex flex-col">
-                                    <span className="text-[32px] font-extrabold text-[#3dd163]">12</span>
-                                    <span className="text-[13px] text-white/60">سنة من العطاء</span>
+                                    <span className="text-[18px] font-extrabold text-[#3dd163] leading-tight">منذ</span>
+                                    <span className="text-[26px] font-extrabold text-[#3dd163] leading-tight">2024م</span>
+                                    <span className="text-[11px] text-white/50 mt-0.5">رحلة عطاء متواصلة</span>
                                 </div>
                                 <div className="w-[1px] h-10 bg-white/10"></div>
                                 <div className="flex flex-col">
@@ -111,29 +124,58 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Left Column (Visual Card) */}
-                        <div className="hidden md:flex justify-center animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-[40px] p-10 w-full max-w-[420px] shadow-2xl relative overflow-hidden group">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-[#3dd163]/5 to-transparent opacity-50"></div>
-                                <div className="relative z-10 flex flex-col items-center">
-                                    <div className="relative w-[140px] h-[140px] mb-6 flex items-center justify-center">
-                                        <div className="absolute inset-0 bg-[#3dd163]/20 rounded-full blur-2xl group-hover:bg-[#3dd163]/30 transition-all"></div>
-                                        <img src="/assets/images/logo.png" alt="Ghaith" className="relative w-[120px] h-[120px] object-contain" />
-                                    </div>
-                                    <h3 className="text-[28px] font-bold text-white mb-8">جمعية غيث</h3>
+                        {/* Left Column (Interactive Visual Card) */}
+                        <div className="hidden md:flex justify-center animate-fade-in relative" style={{ animationDelay: '0.2s' }}>
+                            {/* Rotating decorative rings */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-[440px] h-[440px] border border-[#3dd163]/10 rounded-full" style={{ animation: 'spin 25s linear infinite' }}></div>
+                                <div className="absolute w-[360px] h-[360px] border border-[#3dd163]/08 rounded-full" style={{ animation: 'spin 18s linear infinite reverse' }}></div>
+                            </div>
 
-                                    <div className="grid grid-cols-3 gap-3 w-full">
-                                        <div className="bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2 group-hover:bg-white/15 transition-colors">
+                            <div className="bg-white/[0.07] backdrop-blur-lg border border-white/10 rounded-[36px] p-8 w-full max-w-[420px] shadow-2xl relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#3dd163]/10 via-transparent to-[#3b9dd4]/08"></div>
+
+                                <div className="relative z-10 flex flex-col items-center gap-5">
+                                    {/* Logo with live pulsing ring */}
+                                    <div className="relative flex items-center justify-center mb-2">
+                                        <div className="absolute w-[130px] h-[130px] bg-[#3dd163]/20 rounded-full" style={{ animation: 'ping 2.5s cubic-bezier(0,0,0.2,1) infinite' }}></div>
+                                        <div className="absolute w-[110px] h-[110px] bg-[#3dd163]/25 rounded-full" style={{ animation: 'pulse 2s ease-in-out infinite' }}></div>
+                                        <div className="w-[90px] h-[90px] bg-[#3dd163] rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 relative">
+                                            <img src="/assets/images/logo.png" alt="Ghaith" className="w-[62px] h-[62px] object-contain brightness-0 invert" />
+                                        </div>
+                                    </div>
+
+                                    <h3 className="text-[22px] font-bold text-white">جمعية غيث الولائية</h3>
+
+                                    {/* Active fundraising project card */}
+                                    <div className="w-full bg-white/10 rounded-2xl p-4 border border-white/10 hover:bg-white/15 transition-colors">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-2.5 h-2.5 bg-[#3dd163] rounded-full" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                                            <span className="text-[#3dd163] text-[11px] font-bold uppercase tracking-wider">مشروع نشط • جمع تبرعات</span>
+                                        </div>
+                                        <p className="text-white text-[13px] font-bold mb-3">حملة شراء سيارة نفعية للجمعية</p>
+                                        <div className="bg-white/10 rounded-full h-2 overflow-hidden">
+                                            <div className="bg-gradient-to-l from-[#28a849] to-[#3dd163] h-2 rounded-full" style={{ width: '9%', transition: 'width 1.5s ease' }}></div>
+                                        </div>
+                                        <div className="flex justify-between mt-1.5">
+                                            <span className="text-white/50 text-[11px]">9% من الهدف</span>
+                                            <span className="text-[#3dd163] text-[11px] font-bold">1000 – 2000 دج</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Service icons */}
+                                    <div className="grid grid-cols-3 gap-2 w-full">
+                                        <div className="bg-white/05 border border-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:bg-white/15 transition-colors">
                                             <Users className="w-5 h-5 text-[#3dd163]" />
-                                            <span className="text-white text-[12px] font-medium">أرامل</span>
+                                            <span className="text-white text-[10px] font-medium text-center">دعم الأسر</span>
                                         </div>
-                                        <div className="bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2 group-hover:bg-white/15 transition-colors">
+                                        <div className="bg-white/05 border border-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:bg-white/15 transition-colors">
                                             <Heart className="w-5 h-5 text-[#3dd163]" />
-                                            <span className="text-white text-[12px] font-medium">ذوي احتياجات</span>
+                                            <span className="text-white text-[10px] font-medium text-center">ذوو الاحتياجات</span>
                                         </div>
-                                        <div className="bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2 group-hover:bg-white/15 transition-colors">
+                                        <div className="bg-white/05 border border-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:bg-white/15 transition-colors">
                                             <Activity className="w-5 h-5 text-[#3dd163]" />
-                                            <span className="text-white text-[12px] font-medium">أمراض مزمنة</span>
+                                            <span className="text-white text-[10px] font-medium text-center">المرضى</span>
                                         </div>
                                     </div>
                                 </div>
@@ -300,7 +342,7 @@ export default function LandingPage() {
                             <img src="/assets/images/ghaith3.jfif" alt="حملة رمضان" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/90 via-[#1e3a5f]/30 to-transparent"></div>
                             <div className="absolute bottom-8 right-8 left-8 text-right">
-                                <span className="bg-[#3dd163] text-white px-4 py-1 rounded-full text-[12px] font-bold mb-3 inline-block">رمضان 2024</span>
+                                <span className="bg-[#3dd163] text-white px-4 py-1 rounded-full text-[12px] font-bold mb-3 inline-block">رمضان 2026</span>
                                 <h3 className="text-white text-[24px] font-bold mb-2">حملة إفطار الصائم والقفة الرمضانية</h3>
                                 <p className="text-white/70 text-[14px]">توزيع أكثر من 1000 قفة غذائية على العائلات المعوزة عبر بلديات الولاية.</p>
                             </div>
@@ -311,7 +353,7 @@ export default function LandingPage() {
                             <img src="/assets/images/ghaith4.jfif" alt="حملة الأضحى" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/90 via-[#1e3a5f]/30 to-transparent"></div>
                             <div className="absolute bottom-8 right-8 left-8 text-right">
-                                <span className="bg-[#3dd163] text-white px-4 py-1 rounded-full text-[12px] font-bold mb-3 inline-block">الأضحى 2024</span>
+                                <span className="bg-[#3dd163] text-white px-4 py-1 rounded-full text-[12px] font-bold mb-3 inline-block">الأضحى 2025</span>
                                 <h3 className="text-white text-[24px] font-bold mb-2">مشروع أضاحي العيد وتوزيع اللحوم</h3>
                                 <p className="text-white/70 text-[14px]">إدخال الفرحة على قلوب اليتامى والمحتاجين من خلال توزيع لحوم الأضاحي.</p>
                             </div>
@@ -320,22 +362,216 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* SECTION 6: SUPPORT & BANK DETAILS (GHAITH1) */}
+            {/* SECTION: VAN CAMPAIGN — INTERACTIVE FUNDRAISING */}
+            <section className="py-20 relative overflow-hidden bg-gradient-to-br from-[#0f2744] via-[#1e3a5f] to-[#162b4a]">
+                {/* Decorative blobs */}
+                <div className="absolute top-10 right-20 w-96 h-96 bg-[#3dd163]/6 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#3b9dd4]/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="container mx-auto px-4 md:px-8 relative z-10">
+                    {/* Header */}
+                    <div className="text-center mb-12">
+                        <span className="inline-flex items-center gap-2 bg-red-500/15 border border-red-400/30 text-red-400 px-5 py-2 rounded-full text-[13px] font-bold mb-5">
+                            <span className="w-2 h-2 bg-red-400 rounded-full inline-block" style={{ animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' }}></span>
+                            حملة جمع تبرعات مفتوحة الآن
+                        </span>
+                        <h2 className="text-[38px] md:text-[46px] font-black text-white leading-tight">
+                            ساهم في اقتناء <span className="text-[#3dd163]">سيارة نفعية</span> <br className="hidden md:block" /> لصالح جمعية غيث
+                        </h2>
+                        <p className="text-white/50 text-[16px] mt-4 max-w-[580px] mx-auto leading-relaxed">
+                            سيمكّن هذا المشروع جمعيتنا من نقل التبرعات والوصول إلى أهلنا في المناطق النائية بكفاءة وسرعة
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+
+                        {/* === LEFT: CAMPAIGN IMAGE === */}
+                        <div className="relative group">
+                            {/* Glow */}
+                            <div className="absolute -inset-3 bg-[#3dd163]/10 rounded-[36px] blur-2xl group-hover:bg-[#3dd163]/20 transition-all duration-500 pointer-events-none"></div>
+
+                            <div className="relative rounded-[28px] overflow-hidden shadow-2xl border-2 border-[#3dd163]/30">
+                                <img
+                                    src={ghaithVan}
+                                    alt="حملة شراء سيارة نفعية لصالح جمعية غيث"
+                                    className="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+                                />
+                                {/* Gradient overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0f2744]/60 via-transparent to-transparent pointer-events-none"></div>
+
+                                {/* Floating LIVE badge */}
+                                <div className="absolute top-4 right-4">
+                                    <div className="bg-red-500 text-white px-3 py-1.5 rounded-full text-[12px] font-black flex items-center gap-1.5 shadow-lg">
+                                        <span className="w-1.5 h-1.5 bg-white rounded-full" style={{ animation: 'ping 1s infinite' }}></span>
+                                        حملة مفتوحة
+                                    </div>
+                                </div>
+
+                                {/* Bottom purpose tag */}
+                                <div className="absolute bottom-4 right-4 left-4">
+                                    <div className="flex items-center gap-2 bg-[#3dd163]/90 backdrop-blur-sm text-[#0f2744] px-4 py-2 rounded-2xl">
+                                        <Truck className="w-5 h-5 shrink-0" />
+                                        <span className="font-black text-[14px]">حملة جمع التبرعات لشراء سيارة نفعية</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Goals chips below image */}
+                            <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                                {['نقل التبرعات', 'المناطق النائية', 'نقل المرضى', 'الاستجابة السريعة'].map((tag) => (
+                                    <span key={tag} className="bg-white/10 border border-white/15 text-white/70 px-3 py-1 rounded-full text-[12px] font-medium">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* === RIGHT: INTERACTIVE DONATION WIDGET === */}
+                        <div className="flex flex-col gap-4">
+
+                            {/* Progress Card */}
+                            <div className="bg-white/[0.07] backdrop-blur-md border border-white/10 rounded-2xl p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-white font-bold text-[15px]">تقدم الحملة</span>
+                                    <span className="text-[#3dd163] font-black text-[24px]">9%</span>
+                                </div>
+                                <div className="bg-white/10 rounded-full h-4 overflow-hidden mb-2">
+                                    <div
+                                        className="h-4 rounded-full bg-gradient-to-l from-[#28a849] to-[#3dd163] relative overflow-hidden"
+                                        style={{ width: '9%' }}
+                                    >
+                                        <div className="absolute inset-0 w-full h-full bg-white/20" style={{ animation: 'shimmer 2s infinite', backgroundImage: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)', backgroundSize: '200%' }}></div>
+                                    </div>
+                                </div>
+                                <p className="text-white/40 text-[12px] text-center">9% من هدف التمويل الكلي — ساهم لنصل معاً للهدف</p>
+                            </div>
+
+                            {/* Goals list */}
+                            <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-5">
+                                <h4 className="text-[#3dd163] font-bold text-[14px] mb-3 flex items-center gap-2">
+                                    <Check className="w-4 h-4" /> لماذا نحتاج السيارة النفعية؟
+                                </h4>
+                                <div className="space-y-2.5">
+                                    {[
+                                        'نقل التبرعات بكفاءة وسرعة عالية',
+                                        'تيسير التنقلات للمناطق النائية',
+                                        'نقل المرضى المحتاجين للعلاج',
+                                        'تعزيز قدرة الجمعية الميدانية'
+                                    ].map((goal, i) => (
+                                        <div key={i} className="flex items-center gap-3">
+                                            <div className="w-5 h-5 bg-[#3dd163]/20 rounded-full flex items-center justify-center shrink-0">
+                                                <Check className="w-3 h-3 text-[#3dd163]" />
+                                            </div>
+                                            <span className="text-white/75 text-[14px]">{goal}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Amount selector */}
+                            <div className="bg-white/[0.07] border border-white/10 rounded-2xl p-5">
+                                <h4 className="text-white font-bold text-[14px] mb-4">اختر مبلغ مساهمتك</h4>
+                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                    {['1000 دج', '2000 دج', 'مبلغ آخر'].map((amount) => (
+                                        <button
+                                            key={amount}
+                                            onClick={() => setSelectedAmount(amount)}
+                                            className={`py-3 rounded-xl text-[14px] font-bold transition-all border ${
+                                                selectedAmount === amount
+                                                    ? 'bg-[#3dd163] text-[#0f2744] border-[#3dd163] shadow-lg shadow-[#3dd163]/20 scale-[1.03]'
+                                                    : 'bg-white/5 text-[#3dd163] border-[#3dd163]/30 hover:bg-[#3dd163]/20'
+                                            }`}
+                                        >
+                                            {amount}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Bank details toggle */}
+                                <button
+                                    onClick={() => setShowBankDetails(!showBankDetails)}
+                                    className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-3 transition-all mb-2"
+                                >
+                                    <span className="text-white/70 text-[13px] font-medium">بيانات الحساب البنكي للتحويل</span>
+                                    <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${showBankDetails ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showBankDetails && (
+                                    <div className="bg-[#0f2744]/60 border border-white/10 rounded-xl p-4 space-y-2 text-[13px]">
+                                        <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                            <span className="text-white/50">CCP:</span>
+                                            <span className="font-mono text-white font-bold" dir="ltr">21028495 Clé 29</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                            <span className="text-white/50">RIP:</span>
+                                            <span className="font-mono text-white font-bold" dir="ltr">007 99999 0021028495 29</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/50">CPA:</span>
+                                            <span className="font-mono text-white font-bold" dir="ltr">4100206469-27</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* CTA Buttons */}
+                            <div className="flex gap-3">
+                                <a
+                                    href="tel:0697506846"
+                                    className="flex-1 bg-[#3dd163] hover:bg-[#28a849] text-[#0f2744] py-3.5 rounded-xl text-[15px] font-black transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#3dd163]/20"
+                                >
+                                    <Phone className="w-4 h-4" />
+                                    للمساهمة اتصل بنا
+                                </a>
+                                <a
+                                    href="https://www.facebook.com/Ghaithola28"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-[#1877f2] hover:bg-[#1565d8] text-white px-5 py-3.5 rounded-xl font-bold transition-all flex items-center gap-2"
+                                >
+                                    <Facebook className="w-4 h-4" />
+                                </a>
+                            </div>
+
+                            <p className="text-white/30 text-[11px] text-center">بمجرد تحويل مساهمتك، أرسل إيصال التحويل عبر الهاتف أو الفيسبوك</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SECTION 6: SUPPORT & BANK DETAILS */}
             <section id="support" className="py-24 bg-[#f8fafc]">
                 <div className="container mx-auto px-4 md:px-8">
                     <div className="bg-white rounded-[40px] shadow-xl overflow-hidden border border-[#e2e8f0]">
                         <div className="grid grid-cols-1 lg:grid-cols-2">
-                            <div className="p-10 md:p-16 flex flex-col justify-center gap-8">
-                                <div>
-                                    <span className="text-[#3dd163] font-bold text-[14px] mb-3 block">ساهم معنا في العطاء</span>
-                                    <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#1e3a5f] leading-tight">كيف يمكنك دعم <br />مشاريع الجمعية؟</h2>
+                            {/* LEFT: Supporting Info with Image */}
+                            <div className="p-10 md:p-16 flex flex-col justify-center gap-8 relative">
+                                <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#3dd163]/5 rounded-full blur-3xl"></div>
+                                
+                                <div className="flex flex-col gap-6">
+                                    <div>
+                                        <span className="text-[#3dd163] font-bold text-[14px] mb-3 block">ساهم معنا في العطاء</span>
+                                        <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#1e3a5f] leading-tight mb-4">كيف يمكنك دعم <br />مشاريع الجمعية؟</h2>
+                                        <p className="text-[#64748b] text-[16px] leading-relaxed mb-6">
+                                            تبرعكم هو الغيث الذي يسقي الأمل في قلوب المحتاجين. يمكنكم المساهمة عبر الحسابات البنكية والبريدية الرسمية للجمعية.
+                                        </p>
+                                        
+                                        <div className="relative group max-w-2xl">
+                                            <div className="absolute -inset-1 bg-gradient-to-r from-[#3dd163] to-[#28a849] rounded-[32px] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                            <div className="relative rounded-[28px] overflow-hidden shadow-2xl h-[240px] md:h-[280px]">
+                                                <img 
+                                                    src={ghaith1} 
+                                                    alt="مشاريع جمعية غيث" 
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/60 to-transparent"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-[#64748b] text-[16px] leading-relaxed">
-                                    تبرعكم هو الغيث الذي يسقي الأمل في قلوب المحتاجين. يمكنكم المساهمة عبر الحسابات البنكية والبريدية الرسمية للجمعية الموضحة في الصورة الجانبية.
-                                </p>
 
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-4 bg-[#f1f5f9] p-4 rounded-2xl border border-dashed border-[#cbd5e1]">
+                                    <div className="flex items-center gap-4 bg-[#f1f5f9] p-4 rounded-2xl border border-dashed border-[#cbd5e1] hover:bg-white hover:shadow-md transition-all">
                                         <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center">
                                             <Phone className="w-6 h-6 text-[#3dd163]" />
                                         </div>
@@ -344,17 +580,17 @@ export default function LandingPage() {
                                             <p className="text-[15px] font-bold text-[#1e3a5f]" dir="ltr">{ASSOCIATION_INFO.phone}</p>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-3 bg-[#f1f5f9] p-5 rounded-2xl border border-dashed border-[#cbd5e1]">
+                                    <div className="flex flex-col gap-3 bg-[#f1f5f9] p-5 rounded-2xl border border-dashed border-[#cbd5e1] hover:bg-white hover:shadow-md transition-all">
                                         <div className="flex items-center gap-3">
                                             <Activity className="w-5 h-5 text-[#3dd163]" />
                                             <p className="text-[14px] font-bold text-[#1e3a5f]">بيانات الحسابات البنكية والبريدية</p>
                                         </div>
                                         <div className="space-y-2 mt-2">
-                                            <div className="flex justify-between items-center text-[13px] border-b border-gray-200 pb-1">
+                                            <div className="flex justify-between items-center text-[13px] border-b border-gray-100 pb-1.5">
                                                 <span className="text-[#64748b]">رقم الـ CCP:</span>
                                                 <span className="font-bold font-mono text-[#1e3a5f]" dir="ltr">{ASSOCIATION_INFO.bankAccounts.ccp}</span>
                                             </div>
-                                            <div className="flex justify-between items-center text-[13px] border-b border-gray-200 pb-1">
+                                            <div className="flex justify-between items-center text-[13px] border-b border-gray-100 pb-1.5">
                                                 <span className="text-[#64748b]">رقم الـ RIP:</span>
                                                 <span className="font-bold font-mono text-[#1e3a5f]" dir="ltr">{ASSOCIATION_INFO.bankAccounts.rip}</span>
                                             </div>
@@ -367,14 +603,49 @@ export default function LandingPage() {
                                 </div>
                             </div>
 
-                            <div className="relative bg-[#1e3a5f] flex items-center justify-center p-6 lg:p-12">
-                                <div className="absolute inset-0 bg-[#3dd163]/5 backdrop-blur-[2px]"></div>
-                                <div className="relative z-10 w-full overflow-hidden rounded-3xl shadow-2xl border-4 border-[#3dd163]/30">
-                                    <img
-                                        src="/assets/images/ghaith1.jpg"
-                                        alt="بيانات الدعم والبنك"
-                                        className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500"
-                                    />
+                            {/* Right: Active Van Campaign Project Card */}
+                            <div className="relative bg-gradient-to-br from-[#1a3354] to-[#1e3a5f] flex flex-col justify-between p-8 lg:p-10 gap-5">
+                                <div className="absolute inset-0 bg-[#3dd163]/5"></div>
+                                <div className="relative z-10 flex flex-col gap-4">
+                                    {/* Live badge */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 bg-red-400 rounded-full" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                                        <span className="text-red-400 text-[12px] font-bold uppercase tracking-wider">مشروع نشط — جمع تبرعات مفتوح</span>
+                                    </div>
+
+                                    <h3 className="text-white text-[22px] font-black leading-snug">سيارة نفعية<br /><span className="text-[#3dd163]">لصالح جمعية غيث</span></h3>
+
+                                    {/* Van Campaign Image */}
+                                    <div className="relative overflow-hidden rounded-2xl shadow-2xl border-2 border-[#3dd163]/30">
+                                        <img
+                                            src={ghaithVan}
+                                            alt="حملة السيارة النفعية — جمعية غيث"
+                                            className="w-full h-auto object-contain hover:scale-105 transition-transform duration-700"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/50 to-transparent pointer-events-none"></div>
+                                    </div>
+
+                                    {/* Bullet reasons */}
+                                    <div className="space-y-2">
+                                        {['نقل التبرعات بكفاءة وسرعة عالية', 'تيسير التنقلات للمناطق النائية', 'نقل المرضى المحتاجين'].map((item) => (
+                                            <div key={item} className="flex items-center gap-2.5 text-white/80 text-[13px]">
+                                                <div className="w-1.5 h-1.5 bg-[#3dd163] rounded-full shrink-0"></div>
+                                                {item}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Progress fundraising bar */}
+                                    <div className="bg-white/10 rounded-2xl p-4 border border-white/10">
+                                        <div className="flex justify-between text-[12px] mb-2">
+                                            <span className="text-white/60">مقدار المساهمة</span>
+                                            <span className="text-[#3dd163] font-black">1000 – 2000 دج</span>
+                                        </div>
+                                        <div className="bg-white/10 rounded-full h-2.5 overflow-hidden">
+                                            <div className="bg-gradient-to-l from-[#28a849] to-[#3dd163] h-2.5 rounded-full" style={{ width: '9%' }}></div>
+                                        </div>
+                                        <p className="text-white/40 text-[11px] mt-1.5 text-center">ساهم معنا في تحقيق هذا المشروع الإنساني</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -449,11 +720,12 @@ export default function LandingPage() {
                         <div>
                             <h4 className="text-white font-bold mb-6 text-[16px]">فروعنا</h4>
                             <ul className="flex flex-col gap-3">
-                                <li className="text-white/50 text-[14px]">بلدية المسيلة</li>
-                                <li className="text-white/50 text-[14px]">بلدية سيدي عيسى</li>
-                                <li className="text-white/50 text-[14px]">بلدية برهوم</li>
-                                <li className="text-white/50 text-[14px]">بلدية مقرة</li>
-                                <li className="text-white/50 text-[14px]">بلدية عين الملح</li>
+                                <li className="text-white/50 text-[14px] hover:text-[#3dd163] transition-colors">
+                                    <a href="https://www.facebook.com/profile.php?id=61571337154776" target="_blank" rel="noreferrer">فرع عين الحجل</a>
+                                </li>
+                                <li className="text-white/50 text-[14px] hover:text-[#3dd163] cursor-pointer transition-colors">فرع بن سرور</li>
+                                <li className="text-white/50 text-[14px] hover:text-[#3dd163] cursor-pointer transition-colors">فرع بلدية المسيلة</li>
+                                <li className="text-white/50 text-[14px] hover:text-[#3dd163] cursor-pointer transition-colors">فرع أولاد الدراج</li>
                             </ul>
                         </div>
 

@@ -14,7 +14,10 @@ export default function MyBenefits() {
         const loadBenefits = async () => {
             if (!beneficiarySession) return;
             try {
-                const { data } = await familiesService.getBenefits(beneficiarySession.familyId);
+                const { data } = await familiesService.getBenefits(
+                    beneficiarySession.familyId, 
+                    beneficiarySession.registrationNumber
+                );
                 setBenefits(data || []);
             } catch (err) {
                 console.error(err);

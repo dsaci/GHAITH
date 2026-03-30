@@ -38,7 +38,7 @@ export default function BenefitForm() {
     try {
       await receiptService.createReceipt({
         family_id: familyId,
-        branch_id: family.branch_id || 'MSL', // Fallback
+        branch_id: family.branch_id || family.branchId || 'MSL', // Handle both snake and camel case
         benefit_type: formData.benefit_type,
         amount: Number(formData.amount) || 0,
         description: formData.description
@@ -62,7 +62,7 @@ export default function BenefitForm() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">إضافة وثيقة استفادة</h1>
-          <p className="text-sm text-gray-500 mt-1">المستفيد: {family.target_person_name || family.familyName}</p>
+          <p className="text-sm text-gray-500 mt-1">المستفيد: {family.family_name || family.familyName}</p>
         </div>
       </div>
 

@@ -11,12 +11,12 @@ interface StatCardProps {
 }
 
 const COLOR_MAP = {
-    green: { bg: 'bg-green-50', icon: 'bg-green-100 text-green-600', text: 'text-green-600' },
-    blue: { bg: 'bg-blue-50', icon: 'bg-blue-100 text-blue-600', text: 'text-blue-600' },
-    yellow: { bg: 'bg-yellow-50', icon: 'bg-yellow-100 text-yellow-600', text: 'text-yellow-600' },
-    red: { bg: 'bg-red-50', icon: 'bg-red-100 text-red-600', text: 'text-red-600' },
-    purple: { bg: 'bg-purple-50', icon: 'bg-purple-100 text-purple-600', text: 'text-purple-600' },
-    indigo: { bg: 'bg-indigo-50', icon: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-600' },
+    green: { bg: 'bg-green-50 dark:bg-green-900/20', icon: 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400', text: 'text-green-600 dark:text-green-400' },
+    blue: { bg: 'bg-blue-50 dark:bg-blue-900/20', icon: 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400', text: 'text-blue-600 dark:text-blue-400' },
+    yellow: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', icon: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400', text: 'text-yellow-600 dark:text-yellow-400' },
+    red: { bg: 'bg-red-50 dark:bg-red-900/20', icon: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400' },
+    purple: { bg: 'bg-purple-50 dark:bg-purple-900/20', icon: 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400', text: 'text-purple-600 dark:text-purple-400' },
+    indigo: { bg: 'bg-indigo-50 dark:bg-indigo-900/20', icon: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400', text: 'text-indigo-600 dark:text-indigo-400' },
 };
 
 export function StatCard({ title, value, subtitle, icon, color, trend }: StatCardProps) {
@@ -25,9 +25,9 @@ export function StatCard({ title, value, subtitle, icon, color, trend }: StatCar
         <div className={clsx('stat-card', colors.bg, 'border-0')}>
             <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-sm text-gray-500 font-medium">{title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-                    {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+                    {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>}
                     {trend && (
                         <p className={clsx('text-xs font-medium mt-1', trend.positive ? 'text-green-600' : 'text-red-500')}>
                             {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}% مقارنة بالشهر الماضي
@@ -131,7 +131,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
             <div className={clsx('modal-content', size === 'lg' && 'max-w-3xl', size === 'sm' && 'max-w-sm')}>
                 <div className="modal-header">
-                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
                 {children}
@@ -152,11 +152,11 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 export function EmptyState({ title, description }: { title: string; description?: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
                 <span className="text-3xl">📭</span>
             </div>
-            <p className="text-gray-700 font-semibold text-lg">{title}</p>
-            {description && <p className="text-gray-400 text-sm mt-1">{description}</p>}
+            <p className="text-gray-700 dark:text-gray-300 font-semibold text-lg">{title}</p>
+            {description && <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{description}</p>}
         </div>
     );
 }

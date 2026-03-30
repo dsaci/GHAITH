@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-    Heart, Search, User, Calendar, 
+    Search, User, Calendar, 
     DollarSign, Clipboard, AlertCircle, 
-    CheckCircle2, Loader2, X
+    CheckCircle2, Loader2, X, Printer
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { familiesService } from '../../services/families.service';
@@ -31,6 +31,7 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [generateReceipt, setGenerateReceipt] = useState(true);
     
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -79,6 +80,7 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
             setSubmitting(true);
             setError(null);
             
+            // 1. Register Benefit and Transaction
             await familiesService.addBenefitWithTransaction(selectedFamily.id, {
                 family_id: selectedFamily.id,
                 benefit_type: benefitType,
@@ -86,6 +88,18 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
                 description: description || `استفادة: ${benefitType}`,
                 benefit_date: date
             });
+
+            // 2. Automatically generate Receipt if requested
+            if (generateReceipt && amount && parseFloat(amount) > 0) {
+                const { receiptService } = await import('../../services/receipts.service');
+                await receiptService.createReceipt({
+                    family_id: selectedFamily.id,
+                    branch_id: 'MSL', // Safe fallback, service will resolve actual UUID if needed
+                    benefit_type: benefitType === 'financial_aid' ? 'مالية' : (benefitType.includes('basket') ? 'غذائية' : 'عينية'),
+                    amount: parseFloat(amount),
+                    description: description || `وصل مساعدة: ${benefitType}`
+                });
+            }
 
             setSuccess(true);
             if (onSuccess) onSuccess();
@@ -105,6 +119,7 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
         setSelectedFamily(null);
         setAmount('');
         setDescription('');
+        setGenerateReceipt(true);
         setSuccess(false);
         setError(null);
     };
@@ -121,7 +136,7 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
                         </div>
                         <h3 className="text-2xl font-black text-gray-900 mb-2">تم التسجيل بنجاح</h3>
                         <p className="text-gray-500 font-bold text-lg">مرحبا بعائلتنا الكريمة في فضاءكم غيث</p>
-                        <p className="text-primary-600 font-bold mt-2 italic small">جاري الترحيل المالي وتحديث الأرشيف...</p>
+                        <p className="text-primary-600 font-bold mt-2 italic text-sm">جاري الترحيل المالي وتحديث الأرشيف...</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -245,6 +260,20 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
                             </div>
                         </div>
 
+                        {/* Automatic Receipt Option */}
+                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={generateReceipt}
+                                    onChange={(e) => setGenerateReceipt(e.target.checked)}
+                                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                                />
+                                <span className="text-sm font-bold text-blue-800">إصدار وصل استلام آلي وطباعته</span>
+                            </label>
+                            <Badge variant="blue">توصية</Badge>
+                        </div>
+
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-sm font-bold">
                                 <AlertCircle className="w-4 h-4" />
@@ -265,8 +294,8 @@ export default function QuickBenefitModal({ isOpen, onClose, onSuccess }: QuickB
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-2">
-                                        <Heart className="w-6 h-6" />
-                                        سجل الاستفادة والخصم
+                                        <Printer className="w-6 h-6" />
+                                        سجل الاستفادة وأصدر الوصل
                                     </span>
                                 )}
                             </Button>

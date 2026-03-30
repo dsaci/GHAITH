@@ -13,6 +13,7 @@ export default function RegisterExternalPage() {
     const [password, setPassword] = useState('');
     const [full_name, setFullName] = useState('');
     const [phone, setPhone] = useState('');
+    const [registrationNumber, setRegistrationNumber] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -29,7 +30,13 @@ export default function RegisterExternalPage() {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const res = await registerExternal(type, { email, password, full_name, phone });
+        const res = await registerExternal(type, { 
+            email, 
+            password, 
+            full_name, 
+            phone,
+            registration_number: type === 'beneficiary' ? registrationNumber : undefined
+        });
         setLoading(false);
         if (res.ok) navigate('/portal/awaiting-approval', { replace: true });
         else setError(res.error || 'فشل التسجيل');
@@ -48,6 +55,9 @@ export default function RegisterExternalPage() {
                 <form onSubmit={submit} className="space-y-3">
                     <input required placeholder="الاسم الكامل" value={full_name} onChange={(e) => setFullName(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-slate-600 py-2.5 px-3 text-sm bg-white dark:bg-slate-900" />
                     <input required placeholder="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-slate-600 py-2.5 px-3 text-sm bg-white dark:bg-slate-900" />
+                    {type === 'beneficiary' && (
+                        <input required placeholder="رقم التسجيل (مثال: FAM-2000)" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} className="w-full rounded-xl border border-blue-200 dark:border-blue-800 py-2.5 px-3 text-sm bg-blue-50/30 dark:bg-blue-900/10 font-bold" />
+                    )}
                     <input required type="email" placeholder="البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-slate-600 py-2.5 px-3 text-sm bg-white dark:bg-slate-900" />
                     <input required type="password" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-slate-600 py-2.5 px-3 text-sm bg-white dark:bg-slate-900" />
                     {error && <p className="text-sm text-red-600">{error}</p>}

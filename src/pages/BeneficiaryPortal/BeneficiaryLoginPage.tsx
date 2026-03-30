@@ -85,7 +85,7 @@ export default function BeneficiaryLoginPage() {
                     <span>فخورون بخدمتكم</span>
                 </div>
 
-                <h1 className="text-3xl font-black text-gray-900 mb-2">فصاء العائلات المستفيدة</h1>
+                <h1 className="text-3xl font-black text-gray-900 mb-2">فضاء العائلات المستفيدة</h1>
                 <p className="text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">
                     مرحباً بعائلتنا الكريمة في بيتكم الثاني "غيث"، حيث نتشرف بتمكينكم رقمياً لتسهيل تواصلكم معنا.
                 </p>

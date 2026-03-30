@@ -7,6 +7,7 @@ import {
   LogOut, 
   User as UserIcon,
   ShieldCheck,
+  HelpCircle,
   Menu,
   X
 } from 'lucide-react';
@@ -29,6 +30,7 @@ export default function BeneficiaryLayout() {
     const navItems = [
         { label: 'الرئيسية', icon: LayoutDashboard, path: '/beneficiary/dashboard' },
         { label: 'سجل الاستفادة', icon: History, path: '/beneficiary/benefits' },
+        { label: 'طلب مساعدة', icon: HelpCircle, path: '/beneficiary/requests' },
         { label: 'الإشعارات', icon: Bell, path: '/beneficiary/notifications' },
         { label: 'ملفي الشخصي', icon: UserIcon, path: '/beneficiary/profile' },
     ];

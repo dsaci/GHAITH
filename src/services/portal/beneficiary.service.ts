@@ -17,16 +17,31 @@ export async function getMyStatus() {
 export async function getMyBenefits() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { data: [], error: new Error('غير مسجل') };
+    
+    console.log('[PortalService] Fetching benefits for auth user:', auth.user.id);
+    
     const { data: ext } = await supabase.from('external_users').select('id').eq('auth_id', auth.user.id).maybeSingle();
-    if (!ext) return { data: [], error: null };
+    if (!ext) {
+        console.warn('[PortalService] External user not found');
+        return { data: [], error: null };
+    }
+    
     const { data: bp } = await supabase.from('beneficiary_portal').select('family_id').eq('external_user_id', (ext as { id: string }).id).maybeSingle();
     const fid = (bp as { family_id?: string } | null)?.family_id;
-    if (!fid) return { data: [], error: null };
+    
+    if (!fid) {
+        console.warn('[PortalService] No family mapping found for beneficiary');
+        return { data: [], error: null };
+    }
+    
+    console.log('[PortalService] Found family mapping:', fid);
+    
     const { data, error } = await supabase
         .from('family_benefits')
         .select('benefit_type,benefit_date,description')
         .eq('family_id', fid)
         .order('benefit_date', { ascending: false });
+        
     return { data: data ?? [], error };
 }
 

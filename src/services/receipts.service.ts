@@ -6,14 +6,12 @@ export interface BenefitReceipt {
   receipt_number: string;
   branch_id: string;
   family_id: string;
-  benefit_type: 'مالية' | 'غذائية' | 'عينية';
-  amount: number;
-  amount_words: string;
-  description: string;
-  status: 'draft' | 'signed' | 'delivered' | 'cancelled';
+  benefit_type: string;
+  benefit_value: number;
+  benefit_value_in_words: string;
+  benefit_description: string;
+  status: 'draft' | 'printed' | 'signed' | 'delivered' | 'cancelled';
   created_by: string;
-  signed_by?: string;
-  delivered_by?: string;
   created_at: string;
 }
 
@@ -22,7 +20,7 @@ export const receiptService = {
   async createReceipt(data: {
     family_id: string;
     branch_id: string;
-    benefit_type: 'مالية' | 'غذائية' | 'عينية';
+    benefit_type: string;
     amount: number;
     description: string;
   }) {
@@ -30,13 +28,19 @@ export const receiptService = {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     
-    // Fetch branch code for the receipt number
-    const { data: branchData } = await supabase
-      .from('branches')
-      .select('code')
-      .eq('id', data.branch_id)
-      .single();
+    // Fetch branch record to get the code (handle both UUID and Code for robustness)
+    let branchQuery = supabase.from('branches').select('id, code');
+    
+    // Check if data.branch_id is a valid UUID format (36 chars) or a short code
+    if (data.branch_id && data.branch_id.length === 36) {
+        branchQuery = branchQuery.or(`id.eq.${data.branch_id},code.eq.${data.branch_id}`);
+    } else {
+        branchQuery = branchQuery.eq('code', data.branch_id);
+    }
+    
+    const { data: branchData } = await branchQuery.maybeSingle();
       
+    const branch_id = branchData?.id;
     const branch_code = branchData?.code || 'MSL';
 
     // 1. Generate Receipt Number via RPC
@@ -47,23 +51,33 @@ export const receiptService = {
 
     if (rpcError) throw rpcError;
 
-    // 2. Insert into database
+    // 2. Fetch Family Details for snapshot
+    const { data: family } = await supabase.from('families').select('*').eq('id', data.family_id).single();
+
+    // 3. Insert into database using ACTUAL SQL column names
     const { data: receipt, error } = await supabase
       .from('benefit_receipts')
       .insert({
         receipt_number: receiptNum,
+        fiscal_year: year,
         family_id: data.family_id,
-        branch_id: data.branch_id,
+        branch_id: branch_id || null,
+        beneficiary_full_name: family?.family_name || 'غير معروف',
+        beneficiary_phone: family?.phone,
+        beneficiary_address: family?.address,
         benefit_type: data.benefit_type,
-        amount: data.amount,
-        amount_words: amount_words,
-        description: data.description,
+        benefit_value: data.amount,
+        benefit_value_in_words: amount_words,
+        benefit_description: data.description,
         status: 'draft'
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+        console.error('Error creating receipt in DB:', error);
+        throw error;
+    }
     return receipt as BenefitReceipt;
   },
 
@@ -74,8 +88,8 @@ export const receiptService = {
       .select(`
         *,
         creator:created_by (full_name),
-        signer:signed_by (full_name),
-        deliverer:delivered_by (full_name)
+        deliverer:delivered_by (full_name),
+        printer:printed_by (full_name)
       `)
       .eq('family_id', familyId)
       .order('created_at', { ascending: false });
@@ -90,7 +104,7 @@ export const receiptService = {
       .from('benefit_receipts')
       .select(`
         *,
-        family:families(target_person_name, file_number),
+        family:families(family_name, registration_number),
         creator:created_by (full_name)
       `)
       .order('created_at', { ascending: false });

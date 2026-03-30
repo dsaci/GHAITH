@@ -2,8 +2,8 @@
 -- GHAYTH PLATFORM — ADVANCED FEATURES & 2024 ARCHIVING
 -- ═══════════════════════════════════════════════════════════════════
 
--- ── TASK 1: RECENT ACTIVITIES (DASHBOARD) ──────────────────────────
-CREATE TABLE IF NOT EXISTS recent_activities (
+-- ── TASK 1: ACTIVITY LOGS (DASHBOARD) ──────────────────────────
+CREATE TABLE IF NOT EXISTS activity_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id),
   user_name VARCHAR(150),
@@ -20,10 +20,6 @@ DECLARE
   v_user_name TEXT;
   v_description TEXT;
 BEGIN
-  -- Attempt to get the name of the user who performed the action
-  -- In a real app, we'd use auth.uid() or a dedicated audit context
-  -- For this seed/trigger demo, we'll placeholder the user or use a system flag
-  
   IF (TG_OP = 'INSERT') THEN
     IF (TG_TABLE_NAME = 'families') THEN
       v_description := 'تم تسجيل عائلة ' || NEW.family_name;
@@ -35,7 +31,7 @@ BEGIN
       v_description := 'تم تقديم مساعدة لـ عائلة ' || (SELECT family_name FROM families WHERE id = NEW.family_id);
     END IF;
     
-    INSERT INTO recent_activities (action_type, resource_type, description)
+    INSERT INTO activity_logs (action_type, resource_type, description)
     VALUES ('create', TG_TABLE_NAME, v_description);
     
   END IF;

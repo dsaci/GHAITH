@@ -4,18 +4,29 @@ import {
     Clock, 
     Loader2, Sparkles,
     LayoutDashboard,
-    DollarSign, UserCheck, Activity, Heart
+    DollarSign, UserCheck, Activity, Heart,
+    HelpCircle, ArrowLeft, MapPin, CheckCircle
 } from 'lucide-react';
 import { 
     LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { supabase } from '../../lib/supabase';
-import { Badge, StatCard } from '../../components/ui';
+import { Button, StatCard, Badge } from '../../components/ui';
 import ActivityForecastDashboard from './ActivityForecastDashboard';
 import QuickBenefitModal from '../../components/modals/QuickBenefitModal';
 import type { DashboardStats } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { getPortalRequests, PortalRequestView } from '../../services/admin.portal.service';
+import { useNavigate } from 'react-router-dom';
+import { 
+    FileArchive, 
+    FileText, 
+    Settings, 
+    Calendar, 
+    Globe, 
+    Heart as HeartIcon
+} from 'lucide-react';
 
 interface ActivityItem {
     id: string;
@@ -26,7 +37,6 @@ interface ActivityItem {
 }
 
 const formatCurrency = (n: number) => n.toLocaleString('ar-DZ') + ' دج';
-
 
 const CHART_CATEGORIES = [
     { name: 'أرامل', value: 45, color: '#8b5cf6' },
@@ -60,11 +70,14 @@ export default function DashboardPage() {
     const [view, setView] = useState<'overview' | 'forecast'>('overview');
     const [loading, setLoading] = useState(true);
     const [showQuickBenefit, setShowQuickBenefit] = useState(false);
-    const { canAccess } = useAuth();
+    const [recentRequests, setRecentRequests] = useState<PortalRequestView[]>([]);
+    const { canAccess, user } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
 
     const fetchDashboardData = async () => {
         try {
@@ -79,7 +92,8 @@ export default function DashboardPage() {
                 { count: pendingRequests },
                 { count: beneficiariesThisMonth },
                 { count: activitiesThisMonth },
-                { data: recentActs }
+                { data: recentActs },
+                portalRes
             ] = await Promise.all([
                 supabase.from('families').select('*', { count: 'exact', head: true }).eq('is_deleted', false),
                 supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('is_deleted', false),
@@ -87,8 +101,12 @@ export default function DashboardPage() {
                 supabase.from('portal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
                 supabase.from('family_benefits').select('*', { count: 'exact', head: true }).gte('benefit_date', firstOfMonth),
                 supabase.from('occasions').select('*', { count: 'exact', head: true }).gte('start_date', firstOfMonth).eq('status', 'completed'),
-                supabase.from('recent_activities').select('*').order('created_at', { ascending: false }).limit(6)
+                supabase.from('recent_activities').select('*').order('created_at', { ascending: false }).limit(6),
+                getPortalRequests({ status: 'pending' })
             ]);
+
+            const portalReqs = (portalRes as any).data || [];
+            setRecentRequests(portalReqs.slice(0, 5));
 
             const income = transactions?.filter((t: any) => t.transaction_type === 'income').reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
             const expense = transactions?.filter((t: any) => t.transaction_type === 'expense').reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
@@ -128,18 +146,20 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-gray-900">لوحة التحكم</h1>
-                    <p className="text-gray-500 text-sm mt-1">مرحباً بك مجدداً، ساسي عبد النور</p>
+                    <p className="text-gray-500 text-sm mt-1">مرحباً بك مجدداً، {user?.fullName || 'سيدي الرئيس'}</p>
                 </div>
                 
                 <div className="flex items-center gap-3 self-start md:self-auto">
                     {canAccess('administration', 'create') && (
-                        <button 
-                            onClick={() => setShowQuickBenefit(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-black shadow-md shadow-primary-200 transition-all border-b-4 border-primary-800 active:border-b-0 active:translate-y-1"
-                        >
-                            <Heart className="w-5 h-5" />
-                            إستفادة سريعة
-                        </button>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setShowQuickBenefit(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-black shadow-md shadow-primary-200 transition-all border-b-4 border-primary-800 active:border-b-0 active:translate-y-1"
+                            >
+                                <Heart className="w-5 h-5" />
+                                إستفادة سريعة
+                            </button>
+                        </div>
                     )}
 
                     <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl">
@@ -170,9 +190,40 @@ export default function DashboardPage() {
             ) : (
                 <>
                     {/* Welcome banner */}
-                    <div className="bg-gradient-to-l from-primary-600 to-primary-800 rounded-2xl p-6 text-white shadow-lg">
-                        <h2 className="text-xl font-black">أهلاً بك في منصة جمعية غيث الولائية</h2>
-                        <p className="text-primary-100/90 text-sm mt-1">المسيلة، الجزائر — آخر تحديث: {new Date().toLocaleDateString('ar-DZ')}</p>
+                    <div className="bg-gradient-to-l from-primary-600 to-primary-800 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+                        <div className="relative z-10">
+                            <h2 className="text-2xl font-black mb-2">أهلاً بك في منصة جمعية غيث الولائية</h2>
+                            <p className="text-primary-100/90 text-sm font-bold flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                المسيلة، الجزائر — {new Date().toLocaleDateString('ar-DZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary-400/20 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+                    </div>
+
+                    {/* Quick Access Grid - NEW */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                        {[
+                            { label: 'الأرشيف', icon: FileArchive, path: '/archive', color: 'bg-emerald-500', hover: 'hover:bg-emerald-600' },
+                            { label: 'المالية', icon: DollarSign, path: '/finance', color: 'bg-amber-500', hover: 'hover:bg-amber-600' },
+                            { label: 'الإدارية', icon: Settings, path: '/administration', color: 'bg-slate-600', hover: 'hover:bg-slate-700' },
+                            { label: 'الخطط', icon: Calendar, path: '/planning', color: 'bg-indigo-500', hover: 'hover:bg-indigo-600' },
+                            { label: 'البوابة', icon: Globe, path: '/admin/portal/pending', color: 'bg-blue-500', hover: 'hover:bg-blue-600' },
+                            { label: 'التقارير', icon: FileText, path: '/documents', color: 'bg-rose-500', hover: 'hover:bg-rose-600' },
+                            { label: 'المحسنون', icon: HeartIcon, path: '/donors', color: 'bg-pink-500', hover: 'hover:bg-pink-600' },
+                        ].map((item, i) => (
+                            <button
+                                key={i}
+                                onClick={() => navigate(item.path)}
+                                className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                            >
+                                <div className={`${item.color} p-3 rounded-2xl text-white mb-3 shadow-lg shadow-inherit/20 group-hover:scale-110 transition-transform`}>
+                                    <item.icon className="w-6 h-6" />
+                                </div>
+                                <span className="text-sm font-black text-gray-700 dark:text-gray-200">{item.label}</span>
+                            </button>
+                        ))}
                     </div>
 
                     {/* Stat cards */}
@@ -276,6 +327,65 @@ export default function DashboardPage() {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* New Row: Portal Requests Widget */}
+                    <div className="card bg-amber-50/30 border-amber-100 mt-6 animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+                                    <HelpCircle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900">طلبات المساعدة العاجلة (الفضاء الرقمي)</h3>
+                                    <p className="text-sm text-amber-700/70 font-bold">لديك {stats?.pendingRequests || 0} طلبات مستفيدين بانتظار المراجعة</p>
+                                </div>
+                            </div>
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => navigate('/requests')}
+                                className="bg-white hover:bg-amber-100 border-amber-200 text-amber-800 font-black rounded-xl"
+                            >
+                                مراجعة الكل
+                                <ArrowLeft className="mr-2 w-4 h-4" />
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {recentRequests.length > 0 ? recentRequests.map(req => (
+                                <div key={req.id} className="bg-white p-5 rounded-3xl border border-amber-100/50 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <Badge variant={req.urgency_level === 'urgent' ? 'red' : 'orange'} className="font-black">
+                                                {req.urgency_level === 'urgent' ? 'عاجل جداً' : 'طارئ'}
+                                            </Badge>
+                                            <span className="text-[10px] text-gray-400 font-bold">
+                                                {new Date(req.request_date).toLocaleDateString('ar-DZ')}
+                                            </span>
+                                        </div>
+                                        <h4 className="font-black text-gray-900 text-lg mb-1 group-hover:text-primary-700 transition-colors">عائلة {req.requester_name}</h4>
+                                        <p className="text-xs text-gray-500 font-bold flex items-center gap-1 mb-3">
+                                            <MapPin className="w-3 h-3" />
+                                            بلدية {req.municipality_name}
+                                        </p>
+                                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed font-medium bg-gray-50/50 p-3 rounded-xl border border-gray-50">
+                                            {req.description}
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={() => navigate('/requests')}
+                                        className="mt-4 w-full py-2 bg-gray-50 text-gray-500 rounded-xl text-xs font-black hover:bg-primary-600 hover:text-white transition-all"
+                                    >
+                                        اتخاذ قرار
+                                    </button>
+                                </div>
+                            )) : (
+                                <div className="col-span-full py-10 text-center text-gray-400 font-bold">
+                                    <CheckCircle className="w-12 h-12 text-primary-100 mx-auto mb-4" />
+                                    لا توجد طلبات معلقة حالياً.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>

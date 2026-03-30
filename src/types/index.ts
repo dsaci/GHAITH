@@ -9,6 +9,13 @@ export type UserRole =
 
 export type PortalType = 'volunteer' | 'donor' | 'beneficiary';
 export type ExternalUserStatus = 'pending' | 'active' | 'suspended' | 'rejected';
+export interface Municipality {
+    id: string;
+    name: string;
+    daira: string;
+    wilaya?: string;
+    code?: string;
+}
 
 export interface User {
     id: string;
@@ -121,7 +128,7 @@ export interface Member {
     birthDate?: string;
     gender: 'male' | 'female';
     educationLevel?: string;
-    profession?: string;
+    occupation?: string;
     membershipNumber: string;
     membershipDate: string;
     membershipType: MembershipType;

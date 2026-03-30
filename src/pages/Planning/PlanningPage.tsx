@@ -1,14 +1,76 @@
-import { BarChart2, Target, CheckSquare, Plus } from 'lucide-react';
-import { Button } from '../../components/ui';
+import { useState, useEffect } from 'react';
+import { BarChart2, Target, Plus, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { Button, Modal, Input, Select, LoadingSpinner, EmptyState } from '../../components/ui';
+import type { Occasion, OccasionType } from '../../types';
 
-const PLANS = [
-    { id: 1, title: 'الخطة السنوية 2026', period: 'يناير — ديسمبر 2026', status: 'active', progress: 28, goals: ['مضاعفة عدد العائلات المستفيدة', 'تفعيل 5 فروع بلدية', 'إطلاق برنامج الدعم المدرسي', 'تنظيم 12 نشاط على الأقل'], budget: 2500000 },
-    { id: 2, title: 'خطة مارس 2026', period: 'مارس 2026', status: 'active', progress: 65, goals: ['توزيع 200 قفة رمضان', 'تسجيل 20 عائلة جديدة', 'إقامة يوم تحسيسي'], budget: 550000 },
-    { id: 3, title: 'الخطة السنوية 2025', period: 'يناير — ديسمبر 2025', status: 'completed', progress: 100, goals: ['تحقيق الأهداف الأساسية', 'توسع 3 فروع'], budget: 2100000 },
-];
+
 
 export default function PlanningPage() {
-    const fmt = (n: number) => n.toLocaleString('ar-DZ') + ' دج';
+    const { user } = useAuth();
+    const [plans, setPlans] = useState<Occasion[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({
+        title: '',
+        occasionType: 'social' as OccasionType,
+        description: '',
+        startDate: '',
+        targetBeneficiariesCount: 0,
+        budgetPlanned: 0,
+    });
+
+    useEffect(() => {
+        fetchPlans();
+    }, []);
+
+    async function fetchPlans() {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('occasions')
+                .select('*')
+                .eq('status', 'planned')
+                .order('start_date', { ascending: true });
+            if (error) throw error;
+            setPlans(data || []);
+        } catch (err) {
+            console.error('Error fetching plans:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        try {
+            setIsSubmitting(true);
+            const { error } = await supabase.from('occasions').insert([{
+                title: formData.title,
+                occasion_type: formData.occasionType,
+                description: formData.description || null,
+                start_date: formData.startDate,
+                target_beneficiaries_count: formData.targetBeneficiariesCount || 0,
+                budget_planned: formData.budgetPlanned || 0,
+                status: 'planned' as const,
+                created_by: user?.id,
+                branch_id: user?.branchId || null
+            }]);
+            if (error) throw error;
+            setIsAddModalOpen(false);
+            setFormData({ title: '', occasionType: 'social', description: '', startDate: '', targetBeneficiariesCount: 0, budgetPlanned: 0 });
+            fetchPlans();
+        } catch (err) {
+            console.error('Error adding plan:', err);
+            alert('حدث خطأ أثناء حفظ الخطة');
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    const fmt = (n: number) => (n || 0).toLocaleString('ar-DZ') + ' دج';
 
     return (
         <div className="space-y-5 animate-fade-in">
@@ -17,53 +79,78 @@ export default function PlanningPage() {
                     <h2 className="page-title">الخطط والمتابعة</h2>
                     <p className="text-sm text-gray-500 mt-1">إدارة الخطط السنوية والشهرية ومتابعة التنفيذ</p>
                 </div>
-                <Button icon={<Plus className="w-4 h-4" />}>خطة جديدة</Button>
+                <Button icon={<Plus className="w-4 h-4" />} onClick={() => setIsAddModalOpen(true)}>خطة جديدة</Button>
             </div>
-            <div className="space-y-4">
-                {PLANS.map(plan => (
-                    <div key={plan.id} className="card hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-                            <div className="flex items-start gap-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${plan.status === 'completed' ? 'bg-gray-100' : 'bg-primary-100'}`}>
-                                    <BarChart2 className={`w-6 h-6 ${plan.status === 'completed' ? 'text-gray-500' : 'text-primary-600'}`} />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-gray-900 text-lg">{plan.title}</h4>
-                                    <p className="text-sm text-gray-500">{plan.period}</p>
-                                    <p className="text-sm font-semibold text-primary-700 mt-1">الميزانية: {fmt(plan.budget)}</p>
-                                </div>
-                            </div>
-                            <div className="text-left">
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${plan.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {plan.status === 'completed' ? 'مكتملة' : 'جارية'}
-                                </span>
-                            </div>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="mb-4">
-                            <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-500 flex items-center gap-1"><Target className="w-4 h-4" />نسبة الإنجاز</span>
-                                <span className="font-bold text-gray-900">{plan.progress}%</span>
-                            </div>
-                            <div className="h-3 bg-gray-100 rounded-full">
-                                <div className={`h-full rounded-full transition-all ${plan.progress === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${plan.progress}%` }} />
-                            </div>
-                        </div>
-                        {/* Goals */}
-                        <div>
-                            <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1"><CheckSquare className="w-3.5 h-3.5" />الأهداف</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                                {plan.goals.map((g, i) => (
-                                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className={`w-2 h-2 rounded-full shrink-0 ${plan.progress === 100 ? 'bg-green-500' : 'bg-primary-400'}`} />
-                                        {g}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+
+            {/* Add Plan Modal */}
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="إضافة خطة نشاط جديدة">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4" dir="rtl">
+                    <Input label="عنوان الخطة / النشاط" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="مثال: قفة رمضان 2026" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Select label="نوع النشاط" value={formData.occasionType} onChange={e => setFormData({ ...formData, occasionType: e.target.value as OccasionType })}>
+                            <option value="social">اجتماعي</option>
+                            <option value="religious">ديني</option>
+                            <option value="educational">تربوي</option>
+                            <option value="humanitarian">إنساني</option>
+                            <option value="national">وطني</option>
+                        </Select>
+                        <Input label="تاريخ التنفيذ المتوقع" type="date" required value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                     </div>
-                ))}
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="الميزانية التقديرية (دج)" type="number" value={formData.budgetPlanned} onChange={e => setFormData({ ...formData, budgetPlanned: Number(e.target.value) })} />
+                        <Input label="العدد المستهدف للمستفيدين" type="number" value={formData.targetBeneficiariesCount} onChange={e => setFormData({ ...formData, targetBeneficiariesCount: Number(e.target.value) })} />
+                    </div>
+                    <textarea className="input-field w-full min-h-[100px]" placeholder="وصف الخطة وأهدافها..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="secondary" onClick={() => setIsAddModalOpen(false)}>إلغاء</Button>
+                        <Button type="submit" disabled={isSubmitting} icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}>
+                            {isSubmitting ? 'جاري الحفظ...' : 'حفظ الخطة'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {loading ? (
+                <LoadingSpinner />
+            ) : plans.length === 0 ? (
+                <EmptyState title="لا توجد خطط مستقبلية" description="ابدأ بجدولة الأنشطة القادمة للجمعية." />
+            ) : (
+                <div className="space-y-4">
+                    {plans.map(plan => {
+                        const progress = plan.status === 'completed' ? 100 : plan.status === 'in_progress' ? 50 : 0;
+                        return (
+                            <div key={plan.id} className="card hover:shadow-md transition-shadow group">
+                                <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center shrink-0 group-hover:bg-primary-100 transition-colors">
+                                            <BarChart2 className="w-6 h-6 text-primary-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 text-lg">{plan.title}</h4>
+                                            <p className="text-sm text-gray-500 font-medium">{new Date(plan.startDate).toLocaleDateString('ar-DZ')}</p>
+                                            <p className="text-sm font-black text-primary-700 mt-1">الميزانية: {fmt(plan.budgetPlanned || 0)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-left">
+                                        <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">مجدولة</span>
+                                    </div>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <div className="flex justify-between text-xs font-bold mb-2">
+                                        <span className="text-gray-500 flex items-center gap-1"><Target className="w-4 h-4" />الهدف: {plan.targetBeneficiariesCount || 0} مستفيد</span>
+                                        <span className="text-primary-600">قيد الإعداد</span>
+                                    </div>
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary-500 transition-all" style={{ width: `${progress}%` }} />
+                                    </div>
+                                </div>
+                                {plan.description && <p className="text-sm text-gray-600 line-clamp-2 italic">{plan.description}</p>}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

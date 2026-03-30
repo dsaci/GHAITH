@@ -132,6 +132,7 @@ export interface ExternalRegisterPayload {
     municipality_id?: string;
     birth_date?: string;
     gender?: string;
+    registration_number?: string;
 }
 
 export async function registerExternal(
@@ -181,7 +182,28 @@ export async function registerExternal(
     } else if (portalType === 'donor') {
         await supabase.from('donor_profiles').insert({ external_user_id: externalUserId });
     } else {
-        await supabase.from('beneficiary_portal').insert({ external_user_id: externalUserId });
+        // Beneficiary: Link to family if registration number is provided
+        let targetFamilyId: string | null = null;
+        if (form.registration_number) {
+            const { data: family } = await supabase
+                .from('families')
+                .select('id')
+                .eq('registration_number', form.registration_number)
+                .maybeSingle();
+            
+            if (family) {
+                targetFamilyId = (family as { id: string }).id;
+            } else {
+                // If the registration number is required but not found, we might want to return an error
+                // For now, we'll allow registration but it won't be linked. 
+                // Better: Require it for beneficiaries.
+                return { ok: false, error: 'رقم التسجيل غير موجود في سجلاتنا. يرجى التأكد من الرقم.' };
+            }
+        }
+        await supabase.from('beneficiary_portal').insert({ 
+            external_user_id: externalUserId,
+            family_id: targetFamilyId
+        });
     }
 
     const { data: admins } = await supabase

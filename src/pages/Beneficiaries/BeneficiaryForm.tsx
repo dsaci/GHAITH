@@ -1,18 +1,93 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { Modal, Input, Select, Button } from '../../components/ui';
-import { MSILA_MUNICIPALITIES, MSILA_DAIRAS } from '../../data/msilaData';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
+import type { Family, Municipality } from '../../types';
 
-export default function BeneficiaryForm({ onClose }: { onClose: () => void }) {
+export default function BeneficiaryForm({ onClose, family, onSuccess }: { onClose: () => void; family?: Family; onSuccess?: () => void }) {
+    const { user } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+    const [dairas, setDairas] = useState<string[]>([]);
     const [form, setForm] = useState({
-        familyName: '', phone: '', address: '', municipality: '',
+        familyName: '', phone: '', address: '', municipalityId: '',
         category: '', membersCount: '1', incomeLevel: '', housingStatus: '',
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    useEffect(() => {
+        fetchMunicipalities();
+        if (family) {
+            setForm({
+                familyName: family.familyName,
+                phone: family.phone,
+                address: family.address,
+                municipalityId: family.municipalityId || '',
+                category: family.category,
+                membersCount: String(family.membersCount),
+                incomeLevel: family.incomeLevel || '',
+                housingStatus: family.housingStatus || '',
+            });
+        }
+    }, [family]);
+
+    async function fetchMunicipalities() {
+        try {
+            const { data, error } = await supabase
+                .from('municipalities')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            if (data) {
+                setMunicipalities(data);
+                const uniqueDairas = Array.from(new Set(data.map((m: Municipality) => m.daira).filter(Boolean)));
+                setDairas(uniqueDairas as string[]);
+            }
+        } catch (err) {
+            console.error('Error fetching municipalities:', err);
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert('تم حفظ العائلة بنجاح! (محاكاة)');
-        onClose();
+        try {
+            setIsSubmitting(true);
+            const payload = {
+                family_name: form.familyName,
+                phone: form.phone,
+                address: form.address,
+                municipality_id: form.municipalityId || null,
+                category: form.category,
+                members_count: parseInt(form.membersCount) || 1,
+                income_level: form.incomeLevel || null,
+                housing_status: form.housingStatus || null,
+                updated_at: new Date().toISOString()
+            };
+
+            if (family?.id) {
+                const { error } = await supabase.from('families').update(payload).eq('id', family.id);
+                if (error) throw error;
+                toast.success('تم تحديث بيانات العائلة بنجاح');
+            } else {
+                const { error } = await supabase.from('families').insert([{
+                    ...payload,
+                    registration_number: `F-${Date.now().toString().slice(-6)}`,
+                    created_at: new Date().toISOString(),
+                    created_by: user?.id
+                }]);
+                if (error) throw error;
+                toast.success('تم إضافة العائلة بنجاح');
+            }
+            
+            if (onSuccess) onSuccess();
+            onClose();
+        } catch (error: any) {
+            console.error('Error saving family:', error);
+            toast.error(`حدث خطأ: ${error.message || 'فشل الحفظ'}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -22,12 +97,12 @@ export default function BeneficiaryForm({ onClose }: { onClose: () => void }) {
                     <Input label="اسم رب الأسرة / المستفيد" required value={form.familyName} onChange={e => setForm(f => ({ ...f, familyName: e.target.value }))} placeholder="مثال: زوجة المرحوم عمر بوزيد" />
                     <Input label="رقم الهاتف" required value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0551234567" />
                     <Input label="العنوان الكامل" required value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="حي السلام، المسيلة" />
-                    <Select label="البلدية" required value={form.municipality} onChange={e => setForm(f => ({ ...f, municipality: e.target.value }))}>
+                    <Select label="البلدية" required value={form.municipalityId} onChange={e => setForm(f => ({ ...f, municipalityId: e.target.value }))}>
                         <option value="">اختر البلدية</option>
-                        {MSILA_DAIRAS.map(daira => (
+                        {dairas.sort().map(daira => (
                             <optgroup key={daira} label={`دائرة ${daira}`}>
-                                {MSILA_MUNICIPALITIES.filter(m => m.daira === daira).map(m => (
-                                    <option key={m.id} value={m.name}>{m.name}</option>
+                                {municipalities.filter(m => m.daira === daira).map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
                                 ))}
                             </optgroup>
                         ))}
@@ -51,8 +126,10 @@ export default function BeneficiaryForm({ onClose }: { onClose: () => void }) {
                     </Select>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <Button variant="secondary" type="button" onClick={onClose}><X className="w-4 h-4" /> إلغاء</Button>
-                    <Button type="submit">حفظ العائلة</Button>
+                    <Button variant="secondary" type="button" onClick={onClose} disabled={isSubmitting}><X className="w-4 h-4" /> إلغاء</Button>
+                    <Button type="submit" disabled={isSubmitting} icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}>
+                        {isSubmitting ? 'جاري الحفظ...' : family?.id ? 'تحديث البيانات' : 'حفظ العائلة'}
+                    </Button>
                 </div>
             </form>
         </Modal>

@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
 interface Props {
   receipt: BenefitReceipt & {
     family?: {
-      target_person_name: string;
-      file_number: string;
+      family_name: string;
+      registration_number: string;
     };
     creator?: { full_name: string };
   };
@@ -131,12 +131,12 @@ export const ReceiptPDF: React.FC<Props> = ({ receipt, branchName }) => {
 
         {/* Content */}
         <View style={styles.row}>
-          <Text style={styles.value}>{receipt.family?.target_person_name || '______________'}</Text>
+          <Text style={styles.value}>{receipt.family?.family_name || '______________'}</Text>
           <Text style={styles.label}>اسم المستفيد:</Text>
         </View>
         
         <View style={styles.row}>
-          <Text style={styles.value}>{receipt.family?.file_number || '______________'}</Text>
+          <Text style={styles.value}>{receipt.family?.registration_number || '______________'}</Text>
           <Text style={styles.label}>رقم الملف:</Text>
         </View>
 
@@ -147,15 +147,15 @@ export const ReceiptPDF: React.FC<Props> = ({ receipt, branchName }) => {
 
         <View style={styles.amountBox}>
           <View style={styles.row}>
-            <Text style={styles.value}>{receipt.amount} د.ج</Text>
+            <Text style={styles.value}>{(receipt.benefit_value || 0).toLocaleString('ar-DZ')} د.ج</Text>
             <Text style={styles.label}>المبلغ بالأرقام:</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.value}>{receipt.amount_words}</Text>
+            <Text style={styles.value}>{receipt.benefit_value_in_words}</Text>
             <Text style={styles.label}>المبلغ بالحروف:</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.value}>{receipt.description || 'لا يوجد تفاصيل إضافية'}</Text>
+            <Text style={styles.value}>{receipt.benefit_description || 'لا يوجد تفاصيل إضافية'}</Text>
             <Text style={styles.label}>البيان:</Text>
           </View>
         </View>

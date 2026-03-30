@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/Login/LoginPage';
@@ -54,9 +55,14 @@ const BeneficiaryLoginPage = React.lazy(() => import('./pages/BeneficiaryPortal/
 const BeneficiaryLayout = React.lazy(() => import('./components/layout/BeneficiaryLayout'));
 const BeneficiaryDashboardNew = React.lazy(() => import('./pages/BeneficiaryPortal/BeneficiaryDashboard'));
 const MyBenefits = React.lazy(() => import('./pages/BeneficiaryPortal/MyBenefits'));
+const MyProfile = React.lazy(() => import('./pages/BeneficiaryPortal/MyProfile'));
+const MyRequests = React.lazy(() => import('./pages/BeneficiaryPortal/MyRequests'));
+const Notifications = React.lazy(() => import('./pages/BeneficiaryPortal/Notifications'));
 const DonorDashboard = React.lazy(() => import('./pages/Portal/DonorDashboard'));
 const HonorWallPage = React.lazy(() => import('./pages/HonorWallPage'));
 const PublicArchivePage = React.lazy(() => import('./pages/Archive/PublicArchivePage'));
+const RegulationsPage = React.lazy(() => import('./pages/Rules/RegulationsPage'));
+const RegistrationRequests = React.lazy(() => import('./pages/Admin/Portal/RegistrationRequests'));
 
 import { LoadingSpinner } from './components/ui';
 
@@ -195,8 +201,9 @@ function AppRoutes() {
                 <Route index element={<Navigate to="/beneficiary/dashboard" replace />} />
                 <Route path="dashboard" element={<BeneficiaryDashboardNew />} />
                 <Route path="benefits" element={<MyBenefits />} />
-                <Route path="notifications" element={<PlaceholderPage title="الإشعارات" />} />
-                <Route path="profile" element={<PlaceholderPage title="ملفي الشخصي" />} />
+                <Route path="requests" element={<MyRequests />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="profile" element={<MyProfile />} />
             </Route>
 
             <Route path="/login" element={<LoginGate />} />
@@ -227,6 +234,7 @@ function AppRoutes() {
                 <Route path="/administration/meetings" element={<LazyWrapper><PlaceholderPage title="محاضر الاجتماعات" /></LazyWrapper>} />
                 <Route path="/administration/inventory" element={<LazyWrapper><PlaceholderPage title="المخزون والحركات" /></LazyWrapper>} />
                 <Route path="/administration/bylaws" element={<LazyWrapper><BylawManagementPage /></LazyWrapper>} />
+                <Route path="/regulations" element={<LazyWrapper><RegulationsPage /></LazyWrapper>} />
                 <Route path="/requests" element={<LazyWrapper><RequestsPage /></LazyWrapper>} />
                 <Route path="/reports" element={<LazyWrapper><ReportsPage /></LazyWrapper>} />
                 <Route path="/reports/literary/new" element={<LazyWrapper><LiteraryReport /></LazyWrapper>} />
@@ -247,7 +255,7 @@ function AppRoutes() {
                     element={
                         <LazyWrapper>
                             <RequirePortalAdmin>
-                                <PlaceholderPage title="طلبات التسجيل في البوابة" subtitle="استخدم admin.portal.service من الواجهة أو لوحة Supabase" />
+                                <RegistrationRequests />
                             </RequirePortalAdmin>
                         </LazyWrapper>
                     }
@@ -304,6 +312,7 @@ function AppRoutes() {
                 <Route path="/branch/administration" element={<LazyWrapper><AdministrationPage /></LazyWrapper>} />
                 <Route path="/branch/administration/logs" element={<LazyWrapper><AuditLogsPage /></LazyWrapper>} />
                 <Route path="/branch/administration/bylaws" element={<LazyWrapper><BylawManagementPage /></LazyWrapper>} />
+                <Route path="/branch/regulations" element={<LazyWrapper><RegulationsPage /></LazyWrapper>} />
                 <Route path="/branch/requests" element={<LazyWrapper><RequestsPage /></LazyWrapper>} />
                 <Route path="/branch/planning" element={<LazyWrapper><PlanningPage /></LazyWrapper>} />
                 <Route path="/branch/reports" element={<LazyWrapper><ReportsPage /></LazyWrapper>} />
@@ -317,9 +326,10 @@ function AppRoutes() {
 
 export default function App() {
     return (
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <AppRoutes />
+                <Toaster position="top-center" reverseOrder={false} />
             </AuthProvider>
         </BrowserRouter>
     );

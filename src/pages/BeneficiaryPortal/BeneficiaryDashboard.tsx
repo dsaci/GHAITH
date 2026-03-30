@@ -8,21 +8,25 @@ import { useNavigate } from 'react-router-dom';
 export default function BeneficiaryDashboard() {
     const navigate = useNavigate();
     const { beneficiarySession } = useAuthStore();
-    const [stats, setStats] = useState({ totalBenefits: 0, lastBenefit: '', pendingNotifications: 0 });
+    const [stats, setStats] = useState({ totalBenefits: 0, lastBenefit: '', pendingNotifications: 1 });
+    const [recentBenefits, setRecentBenefits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             if (!beneficiarySession) return;
             try {
-                const { data } = await familiesService.getBenefits(beneficiarySession.familyId);
+                const { data } = await familiesService.getBenefits(
+                    beneficiarySession.familyId, 
+                    beneficiarySession.registrationNumber
+                );
                 const benefits = data || [];
                 
-                // For now, static notifications count or fetch from new table
+                setRecentBenefits(benefits.slice(0, 3));
                 setStats({
                     totalBenefits: benefits.length,
-                    lastBenefit: benefits[0]?.benefit_date || 'لا يوجد',
-                    pendingNotifications: 0
+                    lastBenefit: benefits[0]?.benefit_date ? new Date(benefits[0].benefit_date).toLocaleDateString('ar-DZ') : 'لا يوجد',
+                    pendingNotifications: 1
                 });
             } catch (err) {
                 console.error(err);
@@ -90,18 +94,37 @@ export default function BeneficiaryDashboard() {
                 <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                     <div className="p-8 border-b border-gray-50 flex items-center justify-between">
                         <h3 className="text-xl font-black text-gray-900 flex items-center gap-3 underline underline-offset-8 decoration-primary-600 decoration-4">
-                           سجل الاستفادة الرقمي
+                           آخر الاستفادات
                         </h3>
                         <Button variant="secondary" size="sm" onClick={() => navigate('/beneficiary/benefits')} className="gap-2 rounded-xl text-primary-600 hover:bg-primary-50">
                             عرض الكل
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
                     </div>
-                    <div className="flex-1 p-2">
-                         <div className="bg-primary-50/30 p-8 text-center rounded-3xl m-4 border-2 border-dashed border-primary-100">
-                             <Package className="w-12 h-12 text-primary-200 mx-auto mb-4" />
-                             <p className="text-gray-500 font-bold">يمكنكم هنا مراجعة كل ما استلمته العائلة من مساعدات عينية ومادية.</p>
-                         </div>
+                    <div className="p-4 space-y-3">
+                        {recentBenefits.length > 0 ? (
+                            recentBenefits.map((b) => (
+                                <div key={b.id} className="p-4 bg-gray-50/50 rounded-2xl flex items-center justify-between hover:bg-primary-50/30 transition-colors border border-transparent hover:border-primary-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary-600 shadow-sm">
+                                            <Package className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-gray-900">{b.benefit_type}</p>
+                                            <p className="text-xs text-gray-400 font-bold">{new Date(b.benefit_date).toLocaleDateString('ar-DZ')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-left font-black text-primary-700">
+                                        {b.amount ? `${b.amount.toLocaleString()} دج` : (b.quantity ? `${b.quantity} وحدات` : 'مستلم')}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-10 text-center">
+                                <Package className="w-12 h-12 text-gray-100 mx-auto mb-4" />
+                                <p className="text-gray-400 font-bold">لا توجد عمليات مؤخراً</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -44,8 +44,8 @@ export default function ReceiptsPage() {
   const filteredReceipts = receipts.filter(receipt => {
     const matchesSearch = 
       receipt.receipt_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (receipt.family?.target_person_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (receipt.family?.file_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (receipt.family?.family_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (receipt.family?.registration_number || '').toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesStatus = filterStatus === 'all' || receipt.status === filterStatus;
     
@@ -116,12 +116,12 @@ export default function ReceiptsPage() {
                       <div className="font-mono font-medium text-gray-900">{receipt.receipt_number}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{receipt.family?.target_person_name || 'غير معروف'}</div>
-                      <div className="text-gray-500 text-xs">ملف: {receipt.family?.file_number}</div>
+                      <div className="font-medium text-gray-900">{receipt.family?.family_name || 'غير معروف'}</div>
+                      <div className="text-gray-500 text-xs">رقم التسجيل: {receipt.family?.registration_number}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-primary-700">{receipt.benefit_type}</div>
-                      <div className="text-gray-600 font-bold">{receipt.amount.toLocaleString('ar-DZ')} د.ج</div>
+                      <div className="font-medium text-primary-700">{receipt.benefit_description || receipt.benefit_type}</div>
+                      <div className="text-gray-600 font-bold">{(receipt.benefit_value || 0).toLocaleString('ar-DZ')} د.ج</div>
                     </td>
                     <td className="px-6 py-4 text-gray-500">
                       {new Date(receipt.created_at).toLocaleDateString('ar-DZ')}
@@ -198,9 +198,9 @@ export default function ReceiptsPage() {
             <div className="flex-1 overflow-auto p-8">
               <div className="max-w-4xl mx-auto">
                 <PaymentVoucher 
-                  beneficiaryName={selectedReceipt.family?.target_person_name || 'غير معروف'}
-                  amount={selectedReceipt.amount}
-                  occasion={selectedReceipt.benefit_type}
+                  beneficiaryName={selectedReceipt.family?.family_name || selectedReceipt.beneficiary_full_name || 'غير معروف'}
+                  amount={selectedReceipt.benefit_value || selectedReceipt.amount || 0}
+                  occasion={selectedReceipt.benefit_description || selectedReceipt.benefit_type}
                   refNumber={selectedReceipt.receipt_number}
                   month={new Date(selectedReceipt.created_at).toLocaleString('ar-DZ', { month: 'long' })}
                   onClose={() => setSelectedReceipt(null)}

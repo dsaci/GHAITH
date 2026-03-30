@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Download, Loader2 } from 'lucide-react';
-import { getTransactions, getSummary, createTransaction } from '../../services/finance.service';
+import { getTransactions, getSummary, createTransaction, getGlobalSummary } from '../../services/finance.service';
 import { Badge, Button, LoadingSpinner } from '../../components/ui';
 import type { TransactionType } from '../../types';
 
@@ -15,7 +15,7 @@ const PAY_LABELS: Record<string, string> = { cash: 'نقداً', bank_transfer: 
 
 export default function FinancePage() {
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [stats, setStats] = useState({ income_total: 0, expense_total: 0, balance: 0 });
+    const [stats, setStats] = useState({ income_total: 0, expense_total: 0, balance: 0, globalBalance: 0 });
     const [typeFilter, setTypeFilter] = useState<TransactionType | ''>('');
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -41,11 +41,14 @@ export default function FinancePage() {
             const year = new Date().getFullYear();
             const { data } = await getTransactions({ year, type: typeFilter || undefined });
             const s = await getSummary(year);
+            const g = await getGlobalSummary();
+            
             setTransactions(data || []);
             setStats({
                 income_total: s.income_total,
                 expense_total: s.expense_total,
-                balance: s.balance
+                balance: s.balance,
+                globalBalance: g.balance
             });
         } catch (err) {
             console.error('Error fetching finance data:', err);
@@ -92,10 +95,10 @@ export default function FinancePage() {
                 <div className="card bg-gradient-to-br from-primary-600 to-primary-800 text-white border-0 shadow-lg shadow-primary-100">
                     <div className="flex items-center gap-3 mb-2">
                         <DollarSign className="w-6 h-6 opacity-80" />
-                        <span className="text-sm opacity-80">الرصيد الحالي</span>
+                        <span className="text-sm opacity-80">الرصيد الحالي (التراكمي)</span>
                     </div>
-                    <p className="text-4xl font-black">{fmt(stats.balance)}</p>
-                    <p className="text-xs opacity-60 mt-1 italic group-hover:not-italic">محدث تلقائياً من Supabase</p>
+                    <p className="text-4xl font-black">{fmt(stats.globalBalance)}</p>
+                    <p className="text-xs opacity-60 mt-1 italic group-hover:not-italic">الرصيد الكلي المتوفر في الخزينة</p>
                 </div>
                 <div className="card">
                     <div className="flex items-center gap-3 mb-2 text-green-600">

@@ -39,7 +39,7 @@ export const FamilyReceipts = ({ familyId, branchName, familyName, fileNumber }:
             <div key={receipt.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-white border border-gray-100 shadow-sm rounded-xl gap-4">
               <div>
                 <div className="text-sm font-bold text-gray-900">{receipt.receipt_number}</div>
-                <div className="text-sm text-gray-500">{receipt.benefit_type} • {receipt.amount} د.ج</div>
+                <div className="text-sm text-gray-500">{receipt.benefit_type} • {receipt.benefit_value} د.ج</div>
                 <div className="text-xs text-gray-400 mt-1">{new Date(receipt.created_at).toLocaleDateString('ar-DZ')}</div>
               </div>
               <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export const FamilyReceipts = ({ familyId, branchName, familyName, fileNumber }:
                 <PDFDownloadLink
                   document={<ReceiptPDF receipt={{
                     ...receipt, 
-                    family: { target_person_name: familyName, file_number: fileNumber }
+                    family: { family_name: familyName, registration_number: fileNumber }
                   }} branchName={branchName} />}
                   fileName={`receipt_${receipt.receipt_number}.pdf`}
                   className="bg-white border hover:bg-gray-50 text-gray-700 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors"

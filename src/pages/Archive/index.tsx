@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, FileText, DollarSign } from 'lucide-react';
 import type { Occasion } from '../../types';
-import { getActivitiesByYear, getAnnualSummary, printAnnualYearReport, uploadAnnualReportAndSave } from '../../services/activities.service';
+import { getActivitiesByYear, getAnnualSummary, printAnnualYearReport } from '../../services/activities.service';
 import { TYPE_LABELS, TYPE_STYLE, AR_MONTHS, formatActivityDate } from '../Activities/activityUi';
-import { useAuth } from '../../context/AuthContext';
 
-const YEARS = [2026, 2025, 2024, 2023] as const;
+const YEARS = [2026, 2025, 2024] as const;
 
 export default function ArchivePage() {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const [year, setYear] = useState<number | 'all'>(2025);
+    const [year, setYear] = useState<number | 'all'>(2026);
     const [items, setItems] = useState<Occasion[]>([]);
     const [summary, setSummary] = useState({ totalActivities: 0, totalBeneficiaries: 0, totalBudgetSpent: 0, completedCount: 0 });
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
 
     useEffect(() => {
@@ -69,15 +66,6 @@ export default function ArchivePage() {
         printAnnualYearReport(year, list, s);
     };
 
-    const handleUpload = async () => {
-        if (!user || year === 'all') return;
-        setUploading(true);
-        setMsg(null);
-        const url = await uploadAnnualReportAndSave(year, user.id);
-        setUploading(false);
-        setMsg(url ? 'تم رفع التقرير وتسجيل الرابط (إن توفر التخزين).' : 'تعذر الرفع — تحقق من دلو التخزين وsaved_reports.');
-    };
-
     return (
         <div className="space-y-8 font-['Cairo'] animate-fade-in pb-16" dir="rtl">
             <div>
@@ -91,47 +79,72 @@ export default function ArchivePage() {
                         key={String(y)}
                         type="button"
                         onClick={() => setYear(y)}
-                        className={`px-4 py-2 rounded-xl font-black text-sm ${year === y ? 'bg-[#1e3a5f] text-white' : 'bg-gray-100 text-gray-600'}`}
+                        className={`px-4 py-2 rounded-xl font-black text-sm transition-all ${year === y ? 'bg-[#1e3a5f] text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                         {y === 'all' ? 'كل السنوات' : y}
                     </button>
                 ))}
             </div>
 
-            <div className="card p-6 bg-gradient-to-br from-[#1e3a5f] to-[#2a4f7c] text-white">
-                <h3 className="text-xl font-black mb-4">حصيلة {year === 'all' ? 'كل السنوات' : `سنة ${year}`}</h3>
+            <div className="card p-8 bg-gradient-to-br from-[#1e3a5f] to-[#2a4f7c] text-white relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 transition-transform group-hover:scale-110"></div>
+                
+                <h3 className="text-2xl font-black mb-6 relative z-10">حصيلة {year === 'all' ? 'كل السنوات' : `سنة ${year}`}</h3>
+                
                 {loading ? (
-                    <p>جاري التحميل…</p>
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <p>جاري التحميل…</p>
+                    </div>
                 ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <p className="opacity-80">أنشطة مسجلة</p>
-                            <p className="text-2xl font-black">{summary.totalActivities}</p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm relative z-10">
+                        <div className="space-y-1">
+                            <p className="opacity-70 font-bold">أنشطة مسجلة</p>
+                            <p className="text-3xl font-black">{summary.totalActivities}</p>
                         </div>
-                        <div>
-                            <p className="opacity-80">منجزة</p>
-                            <p className="text-2xl font-black">{summary.completedCount}</p>
+                        <div className="space-y-1">
+                            <p className="opacity-70 font-bold">منجزة</p>
+                            <p className="text-3xl font-black text-green-400">{summary.completedCount}</p>
                         </div>
-                        <div>
-                            <p className="opacity-80">مجموع المستفيدين (المسجل)</p>
-                            <p className="text-2xl font-black">{summary.totalBeneficiaries.toLocaleString('ar-DZ')}</p>
+                        <div className="space-y-1">
+                            <p className="opacity-70 font-bold">مجموع المستفيدين</p>
+                            <p className="text-3xl font-black">{summary.totalBeneficiaries.toLocaleString('ar-DZ')}</p>
                         </div>
-                        <div>
-                            <p className="opacity-80">ميزانية مصروفة (مجموع budget_actual)</p>
-                            <p className="text-2xl font-black">{summary.totalBudgetSpent.toLocaleString('ar-DZ')} دج</p>
+                        <div className="space-y-1">
+                            <p className="opacity-70 font-bold">ميزانية مصروفة</p>
+                            <p className="text-3xl font-black text-amber-400">{summary.totalBudgetSpent.toLocaleString('ar-DZ')} دج</p>
                         </div>
                     </div>
                 )}
-                <div className="flex flex-wrap gap-3 mt-6">
-                    <button type="button" onClick={() => void handlePdf()} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#1e3a5f] font-black text-sm">
-                        <Download className="w-4 h-4" />
-                        تحميل تقرير السنة PDF
-                    </button>
-                    <button type="button" disabled={uploading || year === 'all'} onClick={() => void handleUpload()} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#3dd163] text-[#1e3a5f] font-black text-sm disabled:opacity-50">
-                        رفع للتخزين وحفظ الرابط
-                    </button>
+
+                <div className="mt-8 pt-8 border-t border-white/10 relative z-10">
+                    <p className="text-xs font-black opacity-60 mb-4 uppercase tracking-wider">التقارير السنوية (الجانب الإداري والمالي)</p>
+                    <div className="flex flex-wrap gap-3">
+                        {year !== 'all' && (
+                            <>
+                                <button 
+                                    onClick={() => navigate(`/reports/literary/new?year=${year}`)}
+                                    className="px-5 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-[#1e3a5f] font-black text-sm transition-all flex items-center gap-2"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    تحضير التقرير الأدبي {year}
+                                </button>
+                                <button 
+                                    onClick={() => navigate(`/reports/financial/new?year=${year}`)}
+                                    className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-[#1e3a5f] font-black text-sm transition-all flex items-center gap-2"
+                                >
+                                    <DollarSign className="w-4 h-4" />
+                                    تحضير التقرير المالي {year}
+                                </button>
+                            </>
+                        )}
+                        <button type="button" onClick={() => void handlePdf()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#1e3a5f] font-black text-sm hover:bg-gray-100 transition-all">
+                            <Download className="w-4 h-4" />
+                            حفظ ملخص الأنشطة PDF
+                        </button>
+                    </div>
                 </div>
-                {msg && <p className="mt-3 text-sm font-bold text-amber-200">{msg}</p>}
+                {msg && <p className="mt-4 text-sm font-bold text-amber-200 bg-white/10 px-4 py-2 rounded-lg">{msg}</p>}
             </div>
 
             {year === 'all' ? (

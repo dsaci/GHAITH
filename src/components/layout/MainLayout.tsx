@@ -32,7 +32,7 @@ export default function MainLayout({ branchMode = false }: { branchMode?: boolea
         <LayoutBranchProvider branchMode={branchMode}>
             {needsAgreement && <BylawModal onAgreed={() => setNeedsAgreement(false)} />}
             {showLoginToast && <LoginSuccessToast onClose={() => setShowLoginToast(false)} />}
-            <div className="flex h-screen bg-gray-50 overflow-hidden" dir="rtl">
+            <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden" dir="rtl">
                 <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Header />

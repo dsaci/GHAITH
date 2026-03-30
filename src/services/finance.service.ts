@@ -35,6 +35,20 @@ export async function getSummary(year: number, branch_id?: string) {
     return { income_total: income, expense_total: expense, balance: income - expense, error: null };
 }
 
+export async function getGlobalSummary() {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('amount, transaction_type')
+        .eq('is_deleted', false);
+    
+    if (error || !data) return { balance: 0, error };
+    
+    const income = (data as any[]).filter(t => t.transaction_type === 'income').reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    const expense = (data as any[]).filter(t => t.transaction_type === 'expense').reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    
+    return { balance: income - expense, error: null };
+}
+
 export async function getByBranch(branchId: string, year: number) {
     return getTransactions({ year, branch_id: branchId });
 }

@@ -2,6 +2,10 @@ import { supabase } from '../lib/supabase';
 import type { Family } from '../types';
 import { authService } from './auth.service';
 
+const logService = (action: string, data?: any) => {
+    console.log(`[FamiliesService] ${action}:`, data);
+};
+
 type FamilyRow = Record<string, unknown>;
 
 function mapFamily(r: FamilyRow): Family {
@@ -79,12 +83,32 @@ export async function softDelete(id: string) {
     return update(id, { is_deleted: true } as Partial<FamilyRow>);
 }
 
-export async function getBenefits(familyId: string) {
+export async function getBenefits(familyId: string, regNo?: string) {
+    logService('Fetching benefits for family', { familyId, isBeneficiary: !!regNo });
+    
+    if (regNo) {
+        // Use custom RPC for beneficiary portal (bypasses RLS safely)
+        const { data, error } = await supabase.rpc('get_beneficiary_benefits', { 
+            p_family_id: familyId, 
+            p_reg_no: regNo 
+        });
+        
+        if (error) logService('RPC fetching error', error);
+        else logService('RPC benefits fetched successfully', data?.length);
+        
+        return { data: data || [], error };
+    }
+
+    // Standard query for internal users (subject to RLS)
     const { data, error } = await supabase
         .from('family_benefits')
         .select('*')
         .eq('family_id', familyId)
         .order('benefit_date', { ascending: false });
+    
+    if (error) logService('Error fetching benefits', error);
+    else logService('Benefits fetched successfully', data?.length);
+    
     return { data, error };
 }
 
@@ -159,12 +183,13 @@ export const familiesService = {
         }
 
         // 4. Log Audit Action
+        logService('Logging audit action for benefit', benefitData.id);
         await authService.logAuditAction('create', 'family_benefits', benefitData.id, { 
             family_id: familyId, 
             type: benefit.benefit_type,
             amount: benefit.amount 
         });
 
-        return { data: benefitData };
+        return { data: benefitData, error: null };
     }
 };

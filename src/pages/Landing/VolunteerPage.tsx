@@ -9,35 +9,120 @@ import {
     MessageSquare,
     CheckCircle2,
     ArrowRight,
-    ChevronDown
+    ChevronDown,
+    BookOpen,
+    FileDown
 } from 'lucide-react';
 import { useState } from 'react';
 import { MSILA_MUNICIPALITIES, MSILA_DAIRAS } from '../../data/msilaData';
+import { submitPublicVolunteerRequest } from '../../services/admin.portal.service';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { VolunteerFormPDF } from '../../components/Admin/Portal/VolunteerFormPDF';
+import toast from 'react-hot-toast';
 
 export default function VolunteerPage() {
     const navigate = useNavigate();
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // Form State
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [birthDate, setBirthDate] = useState('');
+    const [birthPlace, setBirthPlace] = useState('');
+    const [municipality, setMunicipality] = useState('');
+    const [profession, setProfession] = useState('');
+    const [specialization, setSpecialization] = useState('');
+    const [educationLevel, setEducationLevel] = useState('');
+    const [reason, setReason] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitted(true);
-        // In a real app, this would send data to Supabase
+        setLoading(true);
+
+        try {
+            const { error } = await submitPublicVolunteerRequest({
+                full_name: fullName,
+                phone,
+                birth_date: birthDate,
+                birth_place: birthPlace,
+                municipality_name: municipality,
+                profession,
+                specialization,
+                education_level: educationLevel,
+                reason
+            });
+
+            if (error) {
+                if (error.message?.includes('syntax') || error.message?.includes('date')) {
+                    toast.error('يرجى التأكد من إدخال البيانات بشكل صحيح (تاريخ الميلاد مثلاً).');
+                } else {
+                    toast.error('حدث خطأ أثناء إرسال طلبك: ' + (error.message || 'حاول مجدداً.'));
+                }
+            } else {
+                setSubmitted(true);
+            }
+        } catch (err) {
+            toast.error('تعذر الاتصال بالخادم. تأكد من اتصالك بالإنترنت.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (submitted) {
         return (
             <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-['Cairo']" dir="rtl">
-                <div className="bg-white rounded-[40px] p-12 max-w-[500px] w-full text-center shadow-2xl border border-[#e2e8f0]">
+                <div className="bg-white rounded-[40px] p-12 max-w-[600px] w-full text-center shadow-2xl border border-[#e2e8f0]">
                     <div className="w-24 h-24 bg-[#3dd163]/20 rounded-full flex items-center justify-center mx-auto mb-8">
                         <CheckCircle2 className="w-12 h-12 text-[#3dd163]" />
                     </div>
-                    <h2 className="text-[32px] font-black text-[#1e3a5f] mb-4">تم استلام طلبك!</h2>
-                    <p className="text-[#64748b] text-[18px] mb-10 leading-relaxed">
-                        شكراً لرغبتك في التطوع مع جمعية غيث. سيقوم فريقنا بمراجعة معلوماتك والتواصل معك قريباً عبر الهاتف.
-                    </p>
+                    <h2 className="text-[32px] font-black text-[#1e3a5f] mb-4">تم إرسال طلبك بنجاح!</h2>
+                    <div className="bg-[#f8fafc] p-6 rounded-[30px] border border-[#e2e8f0] mb-8 space-y-4">
+                        <p className="text-[#64748b] text-[18px] leading-relaxed">
+                            غيث الغد، يبدأ اليوم. شكراً لرغبتك في التطوع معنا.
+                        </p>
+                        <div className="p-4 bg-[#3dd163]/10 rounded-2xl border border-[#3dd163]/20">
+                            <p className="text-[#1e3a5f] font-bold">
+                                يرجى متابعة ملف المتطوع هاتفياً أو الحضور للمقر لتأمين ملفك.
+                            </p>
+                        </div>
+                        <p className="text-[14px] text-gray-400 font-bold">
+                            ملاحظة: يلزم بدفع الاشتراك السنوي والمقدر بـ 1000 دج سنوياً عند القبول.
+                        </p>
+                    </div>
+                    <PDFDownloadLink
+                        document={
+                            <VolunteerFormPDF
+                                municipality={municipality}
+                                data={{
+                                    full_name: fullName,
+                                    phone,
+                                    address: municipality,
+                                    birth_date: birthDate,
+                                    birth_place: birthPlace,
+                                    profession,
+                                    specialization,
+                                    education_level: educationLevel,
+                                    interests: []
+                                }}
+                            />
+                        }
+                        fileName={`استمارة_${fullName}.pdf`}
+                    >
+                        {({ loading: pdfLoading }) => (
+                            <button
+                                disabled={pdfLoading}
+                                className="w-full bg-[#1e3a5f] text-white px-10 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#2a4f7c] transition-all shadow-lg mb-4"
+                            >
+                                <FileDown className="w-6 h-6 text-[#3dd163]" />
+                                {pdfLoading ? 'جاري التحميل...' : 'تحميل استمارة التطوع (PDF)'}
+                            </button>
+                        )}
+                    </PDFDownloadLink>
+
                     <button
                         onClick={() => navigate('/')}
-                        className="bg-[#1e3a5f] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 mx-auto hover:bg-[#2a4f7c] transition-all"
+                        className="w-full bg-white text-[#1e3a5f] border-2 border-[#1e3a5f] px-10 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#f8fafc] transition-all"
                     >
                         العودة للرئيسية
                         <ArrowRight className="w-5 h-5" />
@@ -104,6 +189,8 @@ export default function VolunteerPage() {
                                             required
                                             type="text"
                                             placeholder="أدخل اسمك الكامل"
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
                                             className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all"
                                         />
                                     </div>
@@ -116,6 +203,8 @@ export default function VolunteerPage() {
                                             required
                                             type="tel"
                                             placeholder="06XXXXXXXX"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
                                             className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all text-left"
                                             dir="ltr"
                                         />
@@ -131,42 +220,99 @@ export default function VolunteerPage() {
                                         <input
                                             required
                                             type="date"
+                                            value={birthDate}
+                                            onChange={(e) => setBirthDate(e.target.value)}
                                             className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all"
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">البلدية (السكن) *</label>
+                                    <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">مكان الميلاد *</label>
                                     <div className="relative">
                                         <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
-                                        <select
+                                        <input
                                             required
-                                            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-10 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">اختر البلدية</option>
-                                            {MSILA_DAIRAS.map(daira => (
-                                                <optgroup key={daira} label={`دائرة ${daira}`}>
-                                                    {MSILA_MUNICIPALITIES.filter(m => m.daira === daira).map(m => (
-                                                        <option key={m.id} value={m.name}>{m.name}</option>
-                                                    ))}
-                                                </optgroup>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8] pointer-events-none" />
+                                            type="text"
+                                            placeholder="أدخل مكان الميلاد"
+                                            value={birthPlace}
+                                            onChange={(e) => setBirthPlace(e.target.value)}
+                                            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all"
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">المستوى الدراسي أو المهنة *</label>
+                                <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">البلدية (السكن) *</label>
                                 <div className="relative">
-                                    <Briefcase className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
-                                    <input
+                                    <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
+                                    <select
                                         required
-                                        type="text"
-                                        placeholder="مثال: طالب جامعي، موظف، مهندس..."
-                                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all"
-                                    />
+                                        value={municipality}
+                                        onChange={(e) => setMunicipality(e.target.value)}
+                                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-10 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all appearance-none cursor-pointer font-bold"
+                                    >
+                                        <option value="">اختر البلدية</option>
+                                        {MSILA_DAIRAS.map(daira => (
+                                            <optgroup key={daira} label={`دائرة ${daira}`}>
+                                                {MSILA_MUNICIPALITIES.filter(m => m.daira === daira).map(m => (
+                                                    <option key={m.id} value={m.name}>{m.name}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8] pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">المهنة الحالية *</label>
+                                    <div className="relative">
+                                        <Briefcase className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="مثال: طالب، موظف..."
+                                            value={profession}
+                                            onChange={(e) => setProfession(e.target.value)}
+                                            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">التخصص *</label>
+                                    <div className="relative">
+                                        <BookOpen className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="أدخل تخصصك"
+                                            value={specialization}
+                                            onChange={(e) => setSpecialization(e.target.value)}
+                                            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all font-bold"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[14px] font-bold text-[#1e3a5f] mr-1 block">المستوى التعليمي *</label>
+                                <div className="relative">
+                                    <select
+                                        required
+                                        value={educationLevel}
+                                        onChange={(e) => setEducationLevel(e.target.value)}
+                                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-4 pl-10 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all appearance-none cursor-pointer font-bold"
+                                    >
+                                        <option value="">اختر المستوى التعليمي</option>
+                                        <option value="ثانوي">ثانوي</option>
+                                        <option value="جامعي">جامعي</option>
+                                        <option value="ماستر">ماستر</option>
+                                        <option value="دكتوراه">دكتوراه</option>
+                                        <option value="آخر">آخر</option>
+                                    </select>
+                                    <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8] pointer-events-none" />
                                 </div>
                             </div>
 
@@ -177,6 +323,8 @@ export default function VolunteerPage() {
                                     <textarea
                                         rows={4}
                                         placeholder="أخبرنا باختصار عن دافعك للتطوع..."
+                                        value={reason}
+                                        onChange={(e) => setReason(e.target.value)}
                                         className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-[#3dd163]/50 focus:border-[#3dd163] transition-all resize-none"
                                     ></textarea>
                                 </div>
@@ -185,9 +333,10 @@ export default function VolunteerPage() {
                             <div className="pt-4">
                                 <button
                                     type="submit"
-                                    className="w-full bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] font-black p-5 rounded-2xl text-[18px] transition-all shadow-xl shadow-[#3dd163]/20 flex items-center justify-center gap-3"
+                                    disabled={loading}
+                                    className="w-full bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] font-black p-5 rounded-2xl text-[18px] transition-all shadow-xl shadow-[#3dd163]/20 flex items-center justify-center gap-3 disabled:opacity-50"
                                 >
-                                    إرسال الطلب الآن
+                                    {loading ? 'جاري الإرسال...' : 'إرسال الطلب الآن'}
                                     <ChevronRight className="w-6 h-6 rotate-180" />
                                 </button>
                                 <p className="text-center text-[12px] text-[#94a3b8] mt-4">

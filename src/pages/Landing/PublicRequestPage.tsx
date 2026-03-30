@@ -1,13 +1,79 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Send, User, Phone, MapPin, FileText, ChevronDown } from 'lucide-react';
+import { ArrowRight, Send, User, Phone, MapPin, FileText, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { MSILA_MUNICIPALITIES, MSILA_DAIRAS } from '../../data/msilaData';
+import { submitPublicHelpRequest } from '../../services/admin.portal.service';
+import toast from 'react-hot-toast';
 
 export default function PublicRequestPage() {
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+
+    // Form State
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [municipality, setMunicipality] = useState('');
+    const [aidType, setAidType] = useState('');
+    const [description, setDescription] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const { error } = await submitPublicHelpRequest({
+                full_name: fullName,
+                phone,
+                municipality_name: municipality,
+                aid_type: aidType,
+                description
+            });
+
+            if (error) {
+                toast.error('حدث خطأ أثناء إرسال طلبك: ' + (error.message || 'حاول مجدداً.'));
+            } else {
+                setSubmitted(true);
+                toast.success('تم إرسال طلبك بنجاح');
+            }
+        } catch (err) {
+            toast.error('تعذر الاتصال بالخادم. تأكد من اتصالك بالإنترنت.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (submitted) {
+        return (
+            <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-['Cairo']" dir="rtl">
+                <div className="bg-white rounded-[40px] p-12 max-w-[600px] w-full text-center shadow-2xl border border-[#e2e8f0]">
+                    <div className="w-24 h-24 bg-[#3dd163]/20 rounded-full flex items-center justify-center mx-auto mb-8">
+                        <CheckCircle2 className="w-12 h-12 text-[#3dd163]" />
+                    </div>
+                    <h2 className="text-[32px] font-black text-[#1e3a5f] mb-4">تم إرسال طلبك بنجاح!</h2>
+                    <div className="bg-[#f8fafc] p-6 rounded-[30px] border border-[#e2e8f0] mb-8 space-y-4 text-right">
+                        <p className="text-[#64748b] text-[18px] leading-relaxed">
+                            نحن في جمعية غيث نهتم بكل طلب يصلنا. فريقنا سيقوم بمراجعة حالتك والعمل على تقديم ما يلزم.
+                        </p>
+                        <div className="p-4 bg-[#3dd163]/10 rounded-2xl border border-[#3dd163]/20">
+                            <p className="text-[#1e3a5f] font-bold">
+                                سيتم التواصل معك هاتفياً من قبل لجنة دراسة الملفات لتحديد موعد الزيارة الميدانية.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="bg-[#1e3a5f] text-white px-10 py-4 rounded-2xl font-bold hover:bg-[#2a4f7c] transition-all shadow-lg"
+                    >
+                        العودة للرئيسية
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#f8fafc] font-['Cairo'] pb-20" dir="rtl">
-            {/* Header */}
             <header className="bg-white h-[80px] border-b border-[#e2e8f0] flex items-center px-4 md:px-8 sticky top-0 z-50 shadow-sm">
                 <button
                     onClick={() => navigate('/')}
@@ -30,7 +96,7 @@ export default function PublicRequestPage() {
                 <div className="bg-white rounded-[40px] shadow-2xl border border-[#e2e8f0] overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[#3dd163]/5 rounded-bl-[100px]"></div>
 
-                    <form className="p-8 md:p-12 space-y-8 relative z-10" onSubmit={(e) => { e.preventDefault(); alert('تم استلام طلبك بنجاح، فريقنا سيتواصل معك قريباً'); navigate('/'); }}>
+                    <form className="p-8 md:p-12 space-y-8 relative z-10" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
                                 <label className="text-[14px] font-black text-[#1e3a5f] mr-1 block">الاسم واللقب *</label>
@@ -40,6 +106,8 @@ export default function PublicRequestPage() {
                                         type="text"
                                         className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:ring-4 focus:ring-[#3dd163]/10 focus:border-[#3dd163] outline-none transition-all font-bold"
                                         placeholder="أدخل اسمك الكامل"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -53,6 +121,8 @@ export default function PublicRequestPage() {
                                         className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:ring-4 focus:ring-[#3dd163]/10 focus:border-[#3dd163] outline-none transition-all font-bold text-left"
                                         placeholder="06XXXXXXXX"
                                         dir="ltr"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -63,7 +133,12 @@ export default function PublicRequestPage() {
                             <label className="text-[14px] font-black text-[#1e3a5f] mr-1 block">العنوان السكني (البلدية) *</label>
                             <div className="relative">
                                 <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]" />
-                                <select className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-10 focus:ring-4 focus:ring-[#3dd163]/10 focus:border-[#3dd163] outline-none transition-all appearance-none font-bold cursor-pointer" required>
+                                <select 
+                                    className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-10 focus:ring-4 focus:ring-[#3dd163]/10 focus:border-[#3dd163] outline-none transition-all appearance-none font-bold cursor-pointer"
+                                    value={municipality}
+                                    onChange={(e) => setMunicipality(e.target.value)}
+                                    required
+                                >
                                     <option value="">اختر البلدية</option>
                                     {MSILA_DAIRAS.map(daira => (
                                         <optgroup key={daira} label={`دائرة ${daira}`}>
@@ -81,9 +156,16 @@ export default function PublicRequestPage() {
                             <label className="text-[14px] font-black text-[#1e3a5f] mr-1 block">نوع المساعدة المطلوبة *</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {['مساعدة غذائية', 'دعم طبي', 'معدات خاصة / كراسي', 'أخرى'].map((type) => (
-                                    <label key={type} className="flex items-center gap-4 bg-[#f8fafc] border border-[#e2e8f0] p-5 rounded-2xl cursor-pointer hover:border-[#3dd163] hover:bg-[#3dd163]/5 transition-all group">
-                                        <input type="radio" name="aid_type" className="w-5 h-5 accent-[#3dd163]" required />
-                                        <span className="text-[15px] font-bold text-[#1e3a5f] group-hover:text-[#3dd163] transition-colors">{type}</span>
+                                    <label key={type} className={`flex items-center gap-4 border p-5 rounded-2xl cursor-pointer transition-all group ${aidType === type ? 'border-[#3dd163] bg-[#3dd163]/5' : 'bg-[#f8fafc] border-[#e2e8f0] hover:border-[#3dd163]'}`}>
+                                        <input 
+                                            type="radio" 
+                                            name="aid_type" 
+                                            className="w-5 h-5 accent-[#3dd163]" 
+                                            checked={aidType === type}
+                                            onChange={() => setAidType(type)}
+                                            required 
+                                        />
+                                        <span className={`text-[15px] font-bold transition-colors ${aidType === type ? 'text-[#3dd163]' : 'text-[#1e3a5f] group-hover:text-[#3dd163]'}`}>{type}</span>
                                     </label>
                                 ))}
                             </div>
@@ -96,6 +178,8 @@ export default function PublicRequestPage() {
                                 <textarea
                                     className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl py-4 pr-12 pl-4 focus:ring-4 focus:ring-[#3dd163]/10 focus:border-[#3dd163] outline-none transition-all h-32 resize-none font-bold placeholder:font-normal"
                                     placeholder="اشرح لنا حالتك باختصار لمساعدتنا في دراسة الطلب..."
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
                                     required
                                 ></textarea>
                             </div>
@@ -104,10 +188,11 @@ export default function PublicRequestPage() {
                         <div className="pt-4">
                             <button
                                 type="submit"
-                                className="w-full bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.01] shadow-xl shadow-[#3dd163]/20 text-[18px]"
+                                disabled={loading}
+                                className="w-full bg-[#3dd163] hover:bg-[#28a849] text-[#1e3a5f] font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.01] shadow-xl shadow-[#3dd163]/20 text-[18px] disabled:opacity-50"
                             >
                                 <Send className="w-6 h-6" />
-                                إرسال طلب المساعدة الآن
+                                {loading ? 'جاري الإرسال...' : 'إرسال طلب المساعدة الآن'}
                             </button>
                             <p className="text-center text-[12px] text-[#94a3b8] mt-6 leading-relaxed">
                                 * سيتم التواصل معكم هاتفياً من قبل لجنة دراسة الملفات التابعة للجمعية لتحديد موعد الزيارة الميدانية.

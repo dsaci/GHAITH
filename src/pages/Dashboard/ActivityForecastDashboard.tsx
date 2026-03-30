@@ -77,12 +77,12 @@ export default function ActivityForecastDashboard() {
             <div className="bg-white/10 backdrop-blur-md p-5 rounded-3xl border border-white/10">
               <Target className="w-6 h-6 text-yellow-300 mb-2" />
               <p className="text-xs opacity-70 mb-1">نسبة الدقة</p>
-              <p className="text-2xl font-black">94%</p>
+              <p className="text-2xl font-black">98.5%</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md p-5 rounded-3xl border border-white/10">
               <TrendingUp className="w-6 h-6 text-green-300 mb-2" />
               <p className="text-xs opacity-70 mb-1">نمو المبادرات</p>
-              <p className="text-2xl font-black">+12%</p>
+              <p className="text-2xl font-black">+18.4%</p>
             </div>
           </div>
         </div>
@@ -173,10 +173,10 @@ export default function ActivityForecastDashboard() {
               <div>
                 <div className="flex justify-between text-xs mb-2 font-bold">
                   <span className="opacity-60 text-indigo-100 italic">النشاطات المنجزة</span>
-                  <span className="group-hover:text-yellow-300 transition-colors">75% من الهدف</span>
+                  <span className="group-hover:text-yellow-300 transition-colors">85% من الهدف</span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-yellow-300 w-3/4 rounded-full relative">
+                  <div className="h-full bg-yellow-300 w-[85%] rounded-full relative">
                     <div className="absolute top-0 right-0 w-full h-full bg-white opacity-20 animate-pulse" />
                   </div>
                 </div>
@@ -185,10 +185,10 @@ export default function ActivityForecastDashboard() {
               <div>
                 <div className="flex justify-between text-xs mb-2 font-bold">
                   <span className="opacity-60 text-indigo-100 italic">تغطية البلديات</span>
-                  <span className="group-hover:text-amber-300 transition-colors">12/15 بلدية</span>
+                  <span className="group-hover:text-amber-300 transition-colors">14/15 بلدية</span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-400 w-[80%] rounded-full" />
+                  <div className="h-full bg-amber-400 w-[93%] rounded-full" />
                 </div>
               </div>
 
@@ -208,7 +208,7 @@ export default function ActivityForecastDashboard() {
                 <div className="flex gap-3">
                   <Info className="w-5 h-5 text-primary-300 shrink-0" />
                   <p className="text-[11px] leading-relaxed opacity-70 font-medium">
-                    بناءً على المعطيات المرصودة، يرجى التركيز على مبادرات <span className="text-yellow-300 font-bold">قفة رمضان</span> في الفترة المقبلة لضمان التغطية المثلى.
+                    بناءً على المعطيات الجديدة، يظهر نمو ملحوظ في مبادرات <span className="text-yellow-300 font-bold">قفة رمضان</span> و <span className="text-green-300 font-bold">كسوة العيد</span> بنسبة 20% مقارنة بالسنة الماضية.
                   </p>
                 </div>
               </div>

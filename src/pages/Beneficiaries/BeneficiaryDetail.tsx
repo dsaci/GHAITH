@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
 import { familiesService } from '../../services/families.service';
+import { supabase } from '../../lib/supabase';
 import { ArrowRight, Phone, MapPin, Users, Calendar, Tag, Edit, Loader2 } from 'lucide-react';
 import type { Family, BeneficiaryCategory } from '../../types';
 import { FamilyReceipts } from '../../components/receipts/FamilyReceipts';
+import BeneficiaryForm from './BeneficiaryForm';
 
 const CATEGORY_LABELS: Record<BeneficiaryCategory, string> = {
     widow: 'أرامل', divorced: 'مطلقات', disabled: 'ذوو إعاقة', chronic_illness: 'أمراض مزمنة',
@@ -26,12 +28,20 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
     const [tab, setTab] = useState(0);
     const [benefits, setBenefits] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isLinked, setIsLinked] = useState<boolean | null>(null);
+    const [showEditForm, setShowEditForm] = useState(false);
 
     useEffect(() => {
         if (tab === 2) {
             loadBenefits();
         }
+        checkPortalLink();
     }, [tab, family.id]);
+
+    const checkPortalLink = async () => {
+        const { data } = await supabase.from('beneficiary_portal').select('id').eq('family_id', family.id).maybeSingle();
+        setIsLinked(!!data);
+    };
 
     const loadBenefits = async () => {
         setLoading(true);
@@ -55,10 +65,21 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
                     <ArrowRight className="w-4 h-4" />
                     العودة للقائمة
                 </button>
-                <button className="btn-secondary text-sm">
+                <button onClick={() => setShowEditForm(true)} className="btn-secondary text-sm">
                     <Edit className="w-4 h-4" /> تعديل
                 </button>
             </div>
+
+            {showEditForm && (
+                <BeneficiaryForm 
+                    family={family} 
+                    onClose={() => setShowEditForm(false)} 
+                    onSuccess={() => {
+                        setShowEditForm(false);
+                        onBack(); // Refresh list
+                    }} 
+                />
+            )}
 
             {/* Profile card */}
             <div className="card bg-gradient-to-l from-primary-50 to-white">
@@ -69,6 +90,8 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
                         <div className="flex flex-wrap gap-2 mt-3">
                             <Badge variant="green">{CATEGORY_LABELS[family.category]}</Badge>
                             <Badge variant={family.status === 'active' ? 'green' : 'gray'}>{family.status === 'active' ? 'فعّال' : 'غير فعّال'}</Badge>
+                            {isLinked === true && <Badge variant="blue">متصل بالبوابة</Badge>}
+                            {isLinked === false && <Badge variant="yellow">غير متصل بالبوابة</Badge>}
                         </div>
                     </div>
                     <div className="text-left space-y-1.5">
@@ -172,6 +195,14 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
                         familyName={family.familyName} 
                         fileNumber={family.registrationNumber} 
                     />
+                )}
+                {tab === 2 && isLinked === false && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">ℹ️</div>
+                        <p className="text-xs text-blue-800 font-bold">
+                            تنبيه: هذه العائلة ليست مرتبطة بحساب مستخدم خارجي. لن تتمكن العائلة من رؤية هذه المساعدات في فضاء المستفيد حتى يتم إنشاء حساب لها.
+                        </p>
+                    </div>
                 )}
             </div>
         </div>

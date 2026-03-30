@@ -20,6 +20,7 @@ import {
     MapPin,
     UserCog,
     Activity,
+    BookOpen,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/donors', branchTo: '/branch/donors', label: 'المحسنون', icon: Heart, resource: 'donors', perm: 'canViewDonors' },
     { to: '/activities', branchTo: '/branch/activities', label: 'الأنشطة والمناسبات', icon: Calendar, resource: 'activities' },
     { to: '/archive', branchTo: '/branch/archive', label: 'أرشيف الجمعية', icon: Archive, resource: 'activities' },
+    { to: '/regulations', branchTo: '/branch/regulations', label: 'ميثاق الجمعية', icon: BookOpen, resource: 'dashboard' },
     { to: '/administration', branchTo: '/branch/administration', label: 'السجلات الإدارية', icon: Settings, resource: 'administration' },
     { to: '/requests', branchTo: '/branch/requests', label: 'الطلبات', icon: ClipboardList, resource: 'requests' },
     { to: '/planning', branchTo: '/branch/planning', label: 'الخطط والمتابعة', icon: ClipboardList, resource: 'planning' },

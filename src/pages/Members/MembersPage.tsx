@@ -38,7 +38,7 @@ export default function MembersPage() {
                 email: m.email,
                 address: m.address,
                 municipalityName: m.municipalities?.name || 'غير محدد',
-                profession: m.profession,
+                occupation: m.occupation,
                 membershipNumber: m.membership_number,
                 membershipDate: m.membership_date,
                 membershipType: m.membership_type as MembershipType,
@@ -56,7 +56,7 @@ export default function MembersPage() {
     }
 
     const members = allMembers.filter(m => {
-        const matchSearch = !search || m.fullName.includes(search) || m.membershipNumber.includes(search) || m.profession?.includes(search);
+        const matchSearch = !search || m.fullName.includes(search) || m.membershipNumber.includes(search) || m.occupation?.includes(search);
         const matchStatus = !statusFilter || m.status === statusFilter;
         const matchMunicipality = !municipalityFilter || m.municipalityName === municipalityFilter;
         return matchSearch && matchStatus && matchMunicipality;
@@ -115,7 +115,7 @@ export default function MembersPage() {
                         <div key={m.id} className="card hover:shadow-md transition-shadow">
                             <div className="flex items-start gap-4">
                                 <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-700 font-bold text-xl shrink-0">
-                                    {m.profession?.includes('طبيب') || m.profession?.includes('دكتور') ? (
+                                    {m.occupation?.includes('طبيب') || m.occupation?.includes('دكتور') ? (
                                         <Hospital className="w-6 h-6" />
                                     ) : (
                                         m.fullName.charAt(0)
@@ -124,7 +124,7 @@ export default function MembersPage() {
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-gray-900 truncate">{m.fullName}</h4>
                                     <p className="text-xs text-gray-500 font-mono">{m.membershipNumber}</p>
-                                    {m.profession && <p className="text-xs text-primary-600 mt-0.5">{m.profession}</p>}
+                                    {m.occupation && <p className="text-xs text-primary-600 mt-0.5">{m.occupation}</p>}
                                     <div className="flex gap-2 mt-2 flex-wrap">
                                         <Badge variant={STATUS_COLORS[m.status]}>{STATUS_LABELS[m.status]}</Badge>
                                         <Badge variant="gray">{TYPE_LABELS[m.membershipType]}</Badge>
