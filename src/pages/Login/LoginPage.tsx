@@ -108,7 +108,7 @@ export default function LoginPage() {
                                 onClick={() => setSelectedSpace('member')} 
                                 className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-amber-600/40 border border-white/10 hover:border-amber-400/50 rounded-2xl transition-all duration-300 text-white group shadow-sm hover:shadow-md"
                             >
-                                <span className="font-bold text-lg">فضاء الأعضاء العاديين</span>
+                                <span className="font-bold text-lg">فضاء أعضاء الجمعية</span>
                                 <div className="p-2 bg-amber-500/20 rounded-xl group-hover:bg-amber-500/40 transition-colors">
                                     <Users className="w-6 h-6 text-amber-200" />
                                 </div>
