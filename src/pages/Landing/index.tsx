@@ -517,7 +517,7 @@ export default function LandingPage() {
                             {/* CTA Buttons */}
                             <div className="flex gap-3">
                                 <a
-                                    href="tel:0697506846"
+                                    href="tel:0654645867"
                                     className="flex-1 bg-[#3dd163] hover:bg-[#28a849] text-[#0f2744] py-3.5 rounded-xl text-[15px] font-black transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#3dd163]/20"
                                 >
                                     <Phone className="w-4 h-4" />
