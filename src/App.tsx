@@ -12,6 +12,7 @@ import {
     RequireFinancialReportAccess,
     ExternalPortalRoute,
     ExternalPendingRoute,
+    RequireBeneficiaryAuth
 } from './components/routing/RouteGuards';
 
 const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
@@ -34,6 +35,7 @@ const ReportsPage = React.lazy(() => import('./pages/Reports'));
 const LiteraryReport = React.lazy(() => import('./pages/Reports/LiteraryReport'));
 const FinancialReport = React.lazy(() => import('./pages/Reports/FinancialReport'));
 const PlanningPage = React.lazy(() => import('./pages/Planning/PlanningPage'));
+const AuditLogsPage = React.lazy(() => import('./pages/Administration/AuditLogsPage'));
 const BranchesPage = React.lazy(() => import('./pages/Branches/BranchesPage'));
 const LandingPage = React.lazy(() => import('./pages/Landing'));
 const PublicBylawPage = React.lazy(() => import('./pages/Landing/BylawPage'));
@@ -48,6 +50,11 @@ const PendingPage = React.lazy(() => import('./pages/Portal/PendingPage'));
 const RejectedPage = React.lazy(() => import('./pages/Portal/RejectedPage'));
 const PortalLayout = React.lazy(() => import('./pages/Portal/PortalLayout'));
 const PortalSubPage = React.lazy(() => import('./pages/Portal/PortalSubPage'));
+const BeneficiaryLoginPage = React.lazy(() => import('./pages/BeneficiaryPortal/BeneficiaryLoginPage'));
+const BeneficiaryLayout = React.lazy(() => import('./components/layout/BeneficiaryLayout'));
+const BeneficiaryDashboardNew = React.lazy(() => import('./pages/BeneficiaryPortal/BeneficiaryDashboard'));
+const MyBenefits = React.lazy(() => import('./pages/BeneficiaryPortal/MyBenefits'));
+const DonorDashboard = React.lazy(() => import('./pages/Portal/DonorDashboard'));
 const HonorWallPage = React.lazy(() => import('./pages/HonorWallPage'));
 const PublicArchivePage = React.lazy(() => import('./pages/Archive/PublicArchivePage'));
 
@@ -144,7 +151,7 @@ function AppRoutes() {
                     <LazyWrapper>
                         <ExternalPortalRoute portalType="donor">
                             <PortalLayout>
-                                <PortalSubPage title="لوحة المتبرع" />
+                                <DonorDashboard />
                             </PortalLayout>
                         </ExternalPortalRoute>
                     </LazyWrapper>
@@ -174,42 +181,23 @@ function AppRoutes() {
                     </LazyWrapper>
                 }
             />
+            <Route path="/beneficiary/login" element={<LazyWrapper><BeneficiaryLoginPage /></LazyWrapper>} />
             <Route
-                path="/portal/beneficiary/dashboard"
+                path="/beneficiary"
                 element={
                     <LazyWrapper>
-                        <ExternalPortalRoute portalType="beneficiary">
-                            <PortalLayout>
-                                <PortalSubPage title="لوحة المستفيد" />
-                            </PortalLayout>
-                        </ExternalPortalRoute>
+                        <RequireBeneficiaryAuth>
+                            <BeneficiaryLayout />
+                        </RequireBeneficiaryAuth>
                     </LazyWrapper>
                 }
-            />
-            <Route
-                path="/portal/beneficiary/benefits"
-                element={
-                    <LazyWrapper>
-                        <ExternalPortalRoute portalType="beneficiary">
-                            <PortalLayout>
-                                <PortalSubPage title="المساعدات" />
-                            </PortalLayout>
-                        </ExternalPortalRoute>
-                    </LazyWrapper>
-                }
-            />
-            <Route
-                path="/portal/beneficiary/requests"
-                element={
-                    <LazyWrapper>
-                        <ExternalPortalRoute portalType="beneficiary">
-                            <PortalLayout>
-                                <PortalSubPage title="طلباتي" />
-                            </PortalLayout>
-                        </ExternalPortalRoute>
-                    </LazyWrapper>
-                }
-            />
+            >
+                <Route index element={<Navigate to="/beneficiary/dashboard" replace />} />
+                <Route path="dashboard" element={<BeneficiaryDashboardNew />} />
+                <Route path="benefits" element={<MyBenefits />} />
+                <Route path="notifications" element={<PlaceholderPage title="الإشعارات" />} />
+                <Route path="profile" element={<PlaceholderPage title="ملفي الشخصي" />} />
+            </Route>
 
             <Route path="/login" element={<LoginGate />} />
 
@@ -234,6 +222,7 @@ function AppRoutes() {
                 <Route path="/activities/:id" element={<LazyWrapper><ActivityDetailPage /></LazyWrapper>} />
                 <Route path="/archive" element={<LazyWrapper><ArchivePage /></LazyWrapper>} />
                 <Route path="/administration" element={<LazyWrapper><AdministrationPage /></LazyWrapper>} />
+                <Route path="/administration/logs" element={<LazyWrapper><AuditLogsPage /></LazyWrapper>} />
                 <Route path="/administration/mail" element={<LazyWrapper><PlaceholderPage title="سجل البريد" /></LazyWrapper>} />
                 <Route path="/administration/meetings" element={<LazyWrapper><PlaceholderPage title="محاضر الاجتماعات" /></LazyWrapper>} />
                 <Route path="/administration/inventory" element={<LazyWrapper><PlaceholderPage title="المخزون والحركات" /></LazyWrapper>} />
@@ -313,6 +302,7 @@ function AppRoutes() {
                 <Route path="/branch/activities/:id" element={<LazyWrapper><ActivityDetailPage /></LazyWrapper>} />
                 <Route path="/branch/archive" element={<LazyWrapper><ArchivePage /></LazyWrapper>} />
                 <Route path="/branch/administration" element={<LazyWrapper><AdministrationPage /></LazyWrapper>} />
+                <Route path="/branch/administration/logs" element={<LazyWrapper><AuditLogsPage /></LazyWrapper>} />
                 <Route path="/branch/administration/bylaws" element={<LazyWrapper><BylawManagementPage /></LazyWrapper>} />
                 <Route path="/branch/requests" element={<LazyWrapper><RequestsPage /></LazyWrapper>} />
                 <Route path="/branch/planning" element={<LazyWrapper><PlanningPage /></LazyWrapper>} />

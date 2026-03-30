@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import ReportWizard from '../../components/reports/ReportWizard';
 import { useAuth } from '../../context/AuthContext';
-import * as mockData from '../../data/mockData';
 import {
     ASSOCIATION_LEGAL_NAME,
     getActivitiesByYear,
@@ -11,6 +10,7 @@ import {
     getBoardAttendeesCount,
     saveReport,
     saveDocumentToPlatform,
+    getPresidentName,
 } from '../../services/reports.service';
 import { downloadLiteraryDocx, printReportFromElement } from '../../lib/reportExports';
 import type { Occasion } from '../../types';
@@ -26,10 +26,6 @@ const DEFAULT_OBJECTIVES = [
 
 const INACTIVITY_DEFAULT = 'لم تقم الجمعية بأي نشاط خلال هاته السنة لعدم توفر الاعتمادات المالية';
 
-function presidentFullName(): string {
-    return mockData.MOCK_USERS.find((u) => u.role === 'president')?.fullName || 'رئيس الجمعية';
-}
-
 export default function LiteraryReportPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -39,7 +35,15 @@ export default function LiteraryReportPage() {
     const [assemblyDate, setAssemblyDate] = useState('');
     const [boardAttendees, setBoardAttendees] = useState(0);
     const [secretaryName, setSecretaryName] = useState('');
-    const presidentName = presidentFullName();
+    const [presidentName, setPresidentName] = useState('رئيس الجمعية');
+
+    useEffect(() => {
+        const loadPresident = async () => {
+            const name = await getPresidentName();
+            setPresidentName(name);
+        };
+        loadPresident();
+    }, []);
 
     const [intro, setIntro] = useState('');
     const [objectives, setObjectives] = useState<string[]>([...DEFAULT_OBJECTIVES]);

@@ -25,6 +25,9 @@ export const authService = {
       .update({ last_login: new Date().toISOString() })
       .eq('id', authData.user.id)
     
+    // Log activity
+    await authService.logAuditAction('login', 'session');
+    
     // Update store
     useAuthStore.getState().setInternalUser({
         id: profile.id,
@@ -102,8 +105,12 @@ export const authService = {
   },
   
   async logout() {
+    // Log activity before clearing
+    await authService.logAuditAction('logout', 'session');
+    
     await supabase.auth.signOut()
     useAuthStore.getState().clearAll();
+    localStorage.removeItem('ghaith_beneficiary_session');
   },
 
   async restoreSession() {
@@ -149,5 +156,73 @@ export const authService = {
       return true;
     }
     return false;
+  },
+
+  async loginBeneficiary(regNo: string, phone: string) {
+    const cleanRegNo = regNo.trim();
+    const cleanPhone = phone.trim();
+
+    // Use RPC instead of direct table query to bypass RLS safely
+    // This allows public (anon) roles to verify credentials without SELECT access to the full table
+    const { data, error } = await supabase.rpc('verify_beneficiary', {
+        p_reg_no: cleanRegNo,
+        p_phone: cleanPhone
+    });
+
+    if (error) {
+        console.error('Beneficiary login error:', error);
+        throw new Error('حدث خطأ في الاتصال بقاعدة البيانات');
+    }
+    
+    // RPC returns an array
+    const family = data && data.length > 0 ? data[0] : null;
+
+    if (!family) throw new Error('بيانات الدخول غير صحيحة. يرجى التأكد من رقم التسجيل ورقم الهاتف.');
+
+    const session = {
+        familyId: family.id,
+        familyName: family.family_name,
+        registrationNumber: family.registration_number,
+    };
+
+    useAuthStore.getState().setBeneficiarySession(session);
+    
+    // Log activity
+    await authService.logAuditAction('login', 'beneficiary_portal', session.familyId);
+    
+    // Simple session persistence for beneficiary
+    localStorage.setItem('ghaith_beneficiary_session', JSON.stringify(session));
+
+    return session;
+  },
+
+  async restoreBeneficiarySession() {
+    const saved = localStorage.getItem('ghaith_beneficiary_session');
+    if (saved) {
+        const session = JSON.parse(saved);
+        useAuthStore.getState().setBeneficiarySession(session);
+        return true;
+    }
+    return false;
+  },
+
+  async logAuditAction(action: 'login' | 'logout' | 'create' | 'update' | 'delete', resourceType: string, resourceId?: string, details?: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const beneficiarySession = useAuthStore.getState().beneficiarySession;
+    
+    const log = {
+        user_id: user?.id || beneficiarySession?.familyId || null,
+        user_type: user ? 'internal' : (beneficiarySession ? 'beneficiary' : null),
+        action: action,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        new_values: details ? JSON.stringify(details) : null,
+    };
+
+    try {
+        await supabase.from('audit_logs').insert(log);
+    } catch (e) {
+        console.error('Audit log failed:', e);
+    }
   }
 }

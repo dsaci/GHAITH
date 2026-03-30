@@ -348,6 +348,25 @@ export async function getBoardAttendeesCount(): Promise<number> {
     ).length;
 }
 
+/** Fetches the full name of the current president from the members table */
+export async function getPresidentName(): Promise<string> {
+    try {
+        const { data, error } = await supabase
+            .from('members')
+            .select('full_name, role_in_association')
+            .eq('status', 'active')
+            .ilike('role_in_association', '%رئيس%')
+            .maybeSingle();
+
+        if (!error && data?.full_name) {
+            return data.full_name;
+        }
+    } catch {
+        /* fall through to mock */
+    }
+    return mockData.MOCK_USERS.find((u) => u.role === 'president')?.fullName || 'رئيس الجمعية';
+}
+
 export async function getActiveMembersCount(): Promise<number> {
     try {
         const { count, error } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active');

@@ -1,22 +1,73 @@
-import { useState } from 'react';
-import { Plus, Search, Phone, Mail, Building } from 'lucide-react';
-import { MOCK_DONORS } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Phone, Mail, Building, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Badge, Button } from '../../components/ui';
 import { MSILA_DAIRAS, MSILA_MUNICIPALITIES } from '../../data/msilaData';
+import type { Donor, DonorType } from '../../types';
 
 const TYPE_LABELS: Record<string, string> = { individual: 'فرد', company: 'شركة', institution: 'مؤسسة', anonymous: 'مجهول' };
 const TYPE_COLORS: Record<string, 'blue' | 'green' | 'purple' | 'gray'> = { individual: 'blue', company: 'green', institution: 'purple', anonymous: 'gray' };
 
 export default function DonorsPage() {
+    const [allDonors, setAllDonors] = useState<Donor[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [municipalityFilter, setMunicipalityFilter] = useState('');
 
-    const donors = MOCK_DONORS.filter(d => {
+    useEffect(() => {
+        fetchDonors();
+    }, []);
+
+    async function fetchDonors() {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('donors')
+                .select('*, municipalities(name)')
+                .eq('is_deleted', false)
+                .order('total_donated', { ascending: false });
+
+            if (error) throw error;
+
+            const mapped: Donor[] = (data || []).map((d: any) => ({
+                id: d.id,
+                donorType: d.donor_type as DonorType,
+                fullName: d.full_name,
+                phone: d.phone,
+                email: d.email,
+                address: d.address,
+                municipalityName: d.municipalities?.name || 'غير محدد',
+                companyName: d.company_name,
+                isAnonymous: d.is_anonymous,
+                totalDonated: d.total_donated,
+                lastDonationDate: d.last_donation_date,
+                createdAt: d.created_at,
+            } as Donor));
+
+            setAllDonors(mapped);
+        } catch (err) {
+            console.error('Error fetching donors:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const donors = allDonors.filter(d => {
         const matchSearch = !search || d.fullName.includes(search) || (d.companyName?.includes(search));
         const matchMunicipality = !municipalityFilter || d.municipalityName === municipalityFilter;
         return matchSearch && matchMunicipality;
     });
-    const totalDonated = MOCK_DONORS.reduce((s, d) => s + d.totalDonated, 0);
+
+    const totalDonated = allDonors.reduce((s, d) => s + (d.totalDonated || 0), 0);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+                <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+                <p className="text-gray-500 font-medium">جاري تحميل البيانات...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-5 animate-fade-in">

@@ -72,3 +72,9 @@ export function ExternalPendingRoute({ children }: { children: React.ReactNode }
     if (session.status !== 'pending') return <Navigate to="/portal/login" replace />;
     return <>{children}</>;
 }
+
+export function RequireBeneficiaryAuth({ children }: { children: React.ReactNode }) {
+    const session = useAuthStore((s) => s.beneficiarySession);
+    if (!session) return <Navigate to="/beneficiary/login" replace />;
+    return <>{children}</>;
+}

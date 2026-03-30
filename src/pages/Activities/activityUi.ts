@@ -27,6 +27,7 @@ export const TYPE_STYLE: Record<OccasionType, { bg: string; border: string; dot:
 
 export const CATEGORY_LABELS_AR: Record<BeneficiaryCategory, string> = {
     widow: 'أرملة',
+    divorced: 'مطلقة',
     disabled: 'ذو إعاقة',
     chronic_illness: 'مرض مزمن',
     orphan: 'يتيم',

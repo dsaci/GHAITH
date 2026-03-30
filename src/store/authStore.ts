@@ -12,6 +12,7 @@ export interface AuthPermissions {
     canViewDonors: boolean;
     canViewPortalAdmin: boolean;
     canCreateFinancialReport: boolean;
+    canViewAuditLogs: boolean;
 }
 
 const GUEST_PERMS: AuthPermissions = {
@@ -23,6 +24,7 @@ const GUEST_PERMS: AuthPermissions = {
     canViewDonors: false,
     canViewPortalAdmin: false,
     canCreateFinancialReport: false,
+    canViewAuditLogs: false,
 };
 
 export function computePermissions(role: UserRole | null | undefined): AuthPermissions {
@@ -40,6 +42,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
                 canViewDonors: true,
                 canViewPortalAdmin: true,
                 canCreateFinancialReport: true,
+                canViewAuditLogs: true,
             };
         case 'board_member':
             return {
@@ -51,6 +54,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
                 canViewDonors: false,
                 canViewPortalAdmin: false,
                 canCreateFinancialReport: false,
+                canViewAuditLogs: false,
             };
         case 'branch_president':
             return {
@@ -62,6 +66,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
                 canViewDonors: false,
                 canViewPortalAdmin: false,
                 canCreateFinancialReport: false,
+                canViewAuditLogs: true,
             };
         case 'member':
         default:
@@ -74,6 +79,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
                 canViewDonors: false,
                 canViewPortalAdmin: false,
                 canCreateFinancialReport: false,
+                canViewAuditLogs: false,
             };
     }
 }
@@ -86,35 +92,54 @@ export interface ExternalSession {
     fullName: string;
 }
 
+export interface BeneficiarySession {
+    familyId: string;
+    familyName: string;
+    registrationNumber: string;
+}
+
 interface AuthState {
     internalUser: User | null;
     externalSession: ExternalSession | null;
+    beneficiarySession: BeneficiarySession | null;
     permissions: AuthPermissions;
     setInternalUser: (user: User | null) => void;
     setExternalSession: (session: ExternalSession | null) => void;
+    setBeneficiarySession: (session: BeneficiarySession | null) => void;
     clearAll: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
     internalUser: null,
     externalSession: null,
+    beneficiarySession: null,
     permissions: GUEST_PERMS,
     setInternalUser: (user) =>
         set({
             internalUser: user,
             externalSession: null,
+            beneficiarySession: null,
             permissions: computePermissions(user?.role),
         }),
     setExternalSession: (session) =>
         set({
             externalSession: session,
             internalUser: null,
+            beneficiarySession: null,
+            permissions: GUEST_PERMS,
+        }),
+    setBeneficiarySession: (session) =>
+        set({
+            beneficiarySession: session,
+            internalUser: null,
+            externalSession: null,
             permissions: GUEST_PERMS,
         }),
     clearAll: () =>
         set({
             internalUser: null,
             externalSession: null,
+            beneficiarySession: null,
             permissions: GUEST_PERMS,
         }),
 }));

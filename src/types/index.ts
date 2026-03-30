@@ -30,7 +30,7 @@ export function normalizeUserRole(role: string): UserRole {
     return role as UserRole;
 }
 
-export type BeneficiaryCategory = 'widow' | 'disabled' | 'chronic_illness' | 'orphan' | 'poor_family' | 'other';
+export type BeneficiaryCategory = 'widow' | 'disabled' | 'chronic_illness' | 'orphan' | 'poor_family' | 'other' | 'divorced';
 export type IncomeLevel = 'none' | 'very_low' | 'low' | 'medium';
 export type HousingStatus = 'owned' | 'rented' | 'family' | 'other';
 export type FamilyStatus = 'active' | 'inactive' | 'suspended';

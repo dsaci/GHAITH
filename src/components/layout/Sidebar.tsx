@@ -19,6 +19,7 @@ import {
     Archive,
     MapPin,
     UserCog,
+    Activity,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/planning', branchTo: '/branch/planning', label: 'الخطط والمتابعة', icon: ClipboardList, resource: 'planning' },
     { to: '/branches', branchTo: '/branches', label: 'الفروع البلدية', icon: MapPin, resource: 'branches', wilayaOnly: true },
     { to: '/admin/portal/pending', branchTo: '/admin/portal/pending', label: 'البوابة الخارجية (إدارة)', icon: UserCog, resource: 'portal_admin', perm: 'canViewPortalAdmin', wilayaOnly: true },
+    { to: '/administration/logs', branchTo: '/branch/administration/logs', label: 'سجل التتبع', icon: Activity, resource: 'administration', perm: 'canViewAuditLogs' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

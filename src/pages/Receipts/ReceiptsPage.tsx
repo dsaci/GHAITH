@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { receiptService } from '../../services/receipts.service';
-import { FileText, Search, Printer } from 'lucide-react';
-import { Badge, LoadingSpinner } from '../../components/ui';
+import { FileText, Search, Printer, FileDown, X } from 'lucide-react';
+import { Badge, LoadingSpinner, Button } from '../../components/ui';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ReceiptPDF } from '../../components/receipts/ReceiptPDF';
+import PaymentVoucher from '../../components/documents/PaymentVoucher';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ReceiptsPage() {
@@ -11,6 +12,7 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -154,11 +156,19 @@ export default function ReceiptsPage() {
                           </button>
                         )}
                         
+                        <button 
+                          onClick={() => setSelectedReceipt(receipt)}
+                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-primary-100"
+                          title="معاينة Word"
+                        >
+                          <FileDown className="w-4 h-4" />
+                        </button>
+
                         <PDFDownloadLink
                           document={<ReceiptPDF receipt={receipt} branchName={user?.branchId === 'MSL' ? 'مسيلة' : 'الفرع'} />}
                           fileName={`receipt_${receipt.receipt_number}.pdf`}
-                          className="p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors"
-                          title="طباعة"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100"
+                          title="طباعة PDF"
                         >
                           {() => <Printer className="w-4 h-4" />}
                         </PDFDownloadLink>
@@ -171,6 +181,39 @@ export default function ReceiptsPage() {
           </div>
         )}
       </div>
+
+      {/* Word Preview Modal */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 pr-0">
+          <div className="bg-gray-100 rounded-r-none rounded-l-3xl w-full max-w-5xl h-[95vh] shadow-2xl relative flex flex-col overflow-hidden animate-in slide-in-from-left duration-500">
+            <div className="bg-white p-4 border-b flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg text-primary-900">معاينة وتصدير مستند Word</h3>
+              <button 
+                onClick={() => setSelectedReceipt(null)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-8">
+              <div className="max-w-4xl mx-auto">
+                <PaymentVoucher 
+                  beneficiaryName={selectedReceipt.family?.target_person_name || 'غير معروف'}
+                  amount={selectedReceipt.amount}
+                  occasion={selectedReceipt.benefit_type}
+                  refNumber={selectedReceipt.receipt_number}
+                  month={new Date(selectedReceipt.created_at).toLocaleString('ar-DZ', { month: 'long' })}
+                  onClose={() => setSelectedReceipt(null)}
+                />
+              </div>
+            </div>
+            <div className="bg-white p-4 border-t flex justify-end shrink-0">
+              <Button onClick={() => setSelectedReceipt(null)} variant="secondary">إغلاق المعاينة</Button>
+            </div>
+          </div>
+          <div className="hidden lg:block lg:flex-1 h-full cursor-pointer" onClick={() => setSelectedReceipt(null)} />
+        </div>
+      )}
     </div>
   );
 }

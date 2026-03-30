@@ -66,8 +66,8 @@ export default function BylawModal({ onAgreed }: BylawModalProps) {
               <ShieldAlert className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">القانون الداخلي لجمعية غيث</h2>
-              <p className="text-blue-100 mt-1 text-sm">يجب قراءة والموافقة على القانون الداخلي للمتابعة</p>
+              <h2 className="text-2xl font-bold">القانون الأساسي والنظام الداخلي لجمعية غيث</h2>
+              <p className="text-blue-100 mt-1 text-sm">يجب قراءة والموافقة على اللوائح التنظيمية للمتابعة</p>
             </div>
           </div>
         </div>
@@ -123,13 +123,17 @@ export default function BylawModal({ onAgreed }: BylawModalProps) {
         <div className="bg-white border-t border-gray-100 p-6 shrink-0">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-500 font-medium">
-              {!scrolledToBottom ? 'يرجى التمرير لقراءة جميع المواد لتفعيل زر الموافقة' : 'لقد قرأت جميع البنود وأقر بالالتزام بها'}
+              {rules.length === 0 
+                ? 'لا توجد مواد قانونية مسجلة حالياً، يمكنك المتابعة' 
+                : !scrolledToBottom 
+                  ? 'يرجى التمرير لقراءة جميع المواد لتفعيل زر الموافقة' 
+                  : 'لقد قرأت جميع البنود وأقر بالالتزام بها'}
             </p>
             <button
               onClick={handleAgree}
-              disabled={!scrolledToBottom || saving || rules.length === 0}
+              disabled={(rules.length > 0 && !scrolledToBottom) || saving}
               className={`flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-md w-full sm:w-auto
-                ${scrolledToBottom 
+                ${(rules.length === 0 || scrolledToBottom) 
                   ? 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5' 
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'}
               `}
@@ -139,7 +143,7 @@ export default function BylawModal({ onAgreed }: BylawModalProps) {
               ) : (
                 <Check className="w-5 h-5" />
               )}
-              <span>أوافق والتزم بالقانون الداخلي</span>
+              <span>{rules.length === 0 ? 'متابعة' : 'أوافق والتزم بالقانون الداخلي'}</span>
             </button>
           </div>
         </div>

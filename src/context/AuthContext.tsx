@@ -76,10 +76,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (isSupabaseConfigured) {
                 try {
                     await authService.restoreSession();
+                    await authService.restoreBeneficiarySession();
                 } catch (err) {
                     console.error('Session restore failed. DB likely empty.', err);
                 }
-                if (!useAuthStore.getState().internalUser && !useAuthStore.getState().externalSession) {
+                const s = useAuthStore.getState();
+                if (!s.internalUser && !s.externalSession && !s.beneficiarySession) {
                     hydrateMockUserFromStorage();
                 }
             } else {

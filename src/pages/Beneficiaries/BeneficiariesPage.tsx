@@ -1,24 +1,30 @@
-import { useState } from 'react';
-import { Plus, Search, Filter, Download, Eye } from 'lucide-react';
-import { MOCK_FAMILIES } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Filter, Download, Eye, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Badge, Button, EmptyState } from '../../components/ui';
 import { MSILA_DAIRAS, MSILA_MUNICIPALITIES } from '../../data/msilaData';
-import type { BeneficiaryCategory, FamilyStatus } from '../../types';
+import type { BeneficiaryCategory, FamilyStatus, Family } from '../../types';
 import BeneficiaryDetail from './BeneficiaryDetail';
 import BeneficiaryForm from './BeneficiaryForm';
 
 const CATEGORY_LABELS: Record<BeneficiaryCategory, string> = {
     widow: 'أرامل', disabled: 'ذوو إعاقة', chronic_illness: 'أمراض مزمنة',
     orphan: 'أيتام', poor_family: 'أسر معوزة', other: 'أخرى',
+    divorced: 'مطلقات' as any,
 };
-const CATEGORY_COLORS: Record<BeneficiaryCategory, 'purple' | 'blue' | 'red' | 'yellow' | 'green' | 'gray'> = {
+
+const CATEGORY_COLORS: Record<string, 'purple' | 'blue' | 'red' | 'yellow' | 'green' | 'gray'> = {
     widow: 'purple', disabled: 'blue', chronic_illness: 'red',
     orphan: 'yellow', poor_family: 'green', other: 'gray',
+    divorced: 'purple',
 };
+
 const STATUS_LABELS: Record<FamilyStatus, string> = { active: 'فعّال', inactive: 'غير فعّال', suspended: 'موقوف' };
 const STATUS_COLORS: Record<FamilyStatus, 'green' | 'gray' | 'red'> = { active: 'green', inactive: 'gray', suspended: 'red' };
 
 export default function BeneficiariesPage() {
+    const [allFamilies, setAllFamilies] = useState<Family[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -26,18 +32,67 @@ export default function BeneficiariesPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
 
-    const families = MOCK_FAMILIES.filter(f => {
+    useEffect(() => {
+        fetchFamilies();
+    }, []);
+
+    async function fetchFamilies() {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('families')
+                .select('*, municipalities(name)')
+                .eq('is_deleted', false)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const mapped: Family[] = (data || []).map((f: any) => ({
+                id: f.id,
+                registrationNumber: f.registration_number,
+                familyName: f.family_name,
+                phone: f.phone,
+                address: f.address,
+                municipalityId: f.municipality_id,
+                municipalityName: f.municipalities?.name || 'غير محدد',
+                category: f.category as BeneficiaryCategory,
+                membersCount: f.members_count,
+                status: f.status as FamilyStatus,
+                registrationDate: f.registration_date,
+                is_deleted: f.is_deleted,
+                createdAt: f.created_at,
+                updatedAt: f.updated_at,
+            }));
+
+            setAllFamilies(mapped);
+        } catch (err) {
+            console.error('Error fetching families:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const families = allFamilies.filter(f => {
         const matchSearch = !search || f.familyName.includes(search) || f.registrationNumber.includes(search) || f.phone.includes(search);
         const matchCat = !categoryFilter || f.category === categoryFilter;
         const matchStatus = !statusFilter || f.status === statusFilter;
         const matchMunicipality = !municipalityFilter || f.municipalityName === municipalityFilter;
-        return matchSearch && matchCat && matchStatus && matchMunicipality && !f.is_deleted;
+        return matchSearch && matchCat && matchStatus && matchMunicipality;
     });
 
-    const selectedFamily = selectedId ? MOCK_FAMILIES.find(f => f.id === selectedId) : null;
+    const selectedFamily = selectedId ? allFamilies.find(f => f.id === selectedId) : null;
 
     if (selectedFamily) {
         return <BeneficiaryDetail family={selectedFamily} onBack={() => setSelectedId(null)} />;
+    }
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+                <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+                <p className="text-gray-500 font-medium">جاري تحميل البيانات...</p>
+            </div>
+        );
     }
 
     return (

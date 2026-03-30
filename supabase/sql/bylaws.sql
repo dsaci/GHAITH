@@ -79,24 +79,44 @@ ALTER TABLE bylaw_acknowledgments  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_history          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bylaw_versions         ENABLE ROW LEVEL SECURITY;
 
+-- ── HELPER FUNCTIONS (IN CASE THEY DONT EXIST) ─────────────────────────────
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS TEXT AS $$
+  SELECT role FROM user_profiles WHERE id = auth.uid();
+$$ LANGUAGE SQL SECURITY DEFINER STABLE SET search_path = public;
+
+CREATE OR REPLACE FUNCTION is_top_management()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE id = auth.uid()
+    AND role IN ('president','vice_president','treasurer')
+  );
+$$ LANGUAGE SQL SECURITY DEFINER STABLE SET search_path = public;
+
 -- All authenticated users can read bylaw
+DROP POLICY IF EXISTS "bylaw_read_all" ON bylaw_articles;
 CREATE POLICY "bylaw_read_all" ON bylaw_articles
   FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
 
 -- Only president can modify bylaw
+DROP POLICY IF EXISTS "bylaw_manage" ON bylaw_articles;
 CREATE POLICY "bylaw_manage" ON bylaw_articles
   FOR ALL USING (get_my_role() = 'president');
 
 -- User sees own acknowledgments
+DROP POLICY IF EXISTS "ack_own" ON bylaw_acknowledgments;
 CREATE POLICY "ack_own" ON bylaw_acknowledgments
   FOR ALL USING (user_id = auth.uid());
 
 -- Top 3 see all login history
+DROP POLICY IF EXISTS "login_history_top" ON login_history;
 CREATE POLICY "login_history_top" ON login_history
   FOR SELECT USING (
     user_id = auth.uid() OR is_top_management()
   );
 
+DROP POLICY IF EXISTS "bylaw_versions_read" ON bylaw_versions;
 CREATE POLICY "bylaw_versions_read" ON bylaw_versions
   FOR SELECT USING (auth.uid() IS NOT NULL);
 

@@ -1,10 +1,12 @@
+import { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
-import { MOCK_BENEFITS } from '../../data/mockData';
+import { familiesService } from '../../services/families.service';
+import { ArrowRight, Phone, MapPin, Users, Calendar, Tag, Edit, Loader2 } from 'lucide-react';
 import type { Family, BeneficiaryCategory } from '../../types';
 import { FamilyReceipts } from '../../components/receipts/FamilyReceipts';
 
 const CATEGORY_LABELS: Record<BeneficiaryCategory, string> = {
-    widow: 'أرامل', disabled: 'ذوو إعاقة', chronic_illness: 'أمراض مزمنة',
+    widow: 'أرامل', divorced: 'مطلقات', disabled: 'ذوو إعاقة', chronic_illness: 'أمراض مزمنة',
     orphan: 'أيتام', poor_family: 'أسر معوزة', other: 'أخرى',
 };
 const BENEFIT_LABELS: Record<string, string> = {
@@ -22,7 +24,27 @@ const INFO_ROW = ({ label, value }: { label: string; value: string | number }) =
 
 export default function BeneficiaryDetail({ family, onBack }: { family: Family; onBack: () => void }) {
     const [tab, setTab] = useState(0);
-    const benefits = MOCK_BENEFITS.filter(b => b.familyId === family.id);
+    const [benefits, setBenefits] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (tab === 2) {
+            loadBenefits();
+        }
+    }, [tab, family.id]);
+
+    const loadBenefits = async () => {
+        setLoading(true);
+        try {
+            const { data } = await familiesService.getBenefits(family.id);
+            setBenefits(data || []);
+        } catch (error) {
+            console.error('Error loading benefits:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const tabs = ['المعلومات الأساسية', 'الوضع المادي', 'سجل الاستفادات', 'الوثائق', 'وثائق الاستفادة'];
 
     return (
@@ -98,25 +120,37 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
 
                 {tab === 2 && (
                     <div>
-                        {benefits.length === 0 ? (
-                            <p className="text-sm text-gray-400 text-center py-8">لا توجد استفادات مسجلة بعد</p>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                                <p className="text-sm">جاري تحميل السجل...</p>
+                            </div>
+                        ) : benefits.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <Tag className="w-8 h-8 text-gray-300" />
+                                </div>
+                                <p className="text-sm text-gray-400">لا توجد استفادات مسجلة لهذه العائلة بعد</p>
+                            </div>
                         ) : (
                             <div className="space-y-3">
                                 {benefits.map(b => (
-                                    <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                                                <Tag className="w-4 h-4 text-primary-600" />
+                                    <div key={b.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
+                                                <Tag className="w-5 h-5 text-primary-600" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{BENEFIT_LABELS[b.benefitType]}</p>
-                                                <p className="text-xs text-gray-500">{b.description}</p>
+                                                <p className="text-sm font-bold text-gray-900">{BENEFIT_LABELS[b.benefit_type] || b.benefit_type}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{b.description || 'بدون وصف'}</p>
                                             </div>
                                         </div>
                                         <div className="text-left">
-                                            {b.amount && <p className="text-sm font-bold text-primary-700">{b.amount.toLocaleString('ar-DZ')} دج</p>}
-                                            {b.quantity && <p className="text-sm text-gray-600">{b.quantity} وحدة</p>}
-                                            <p className="text-xs text-gray-400">{b.benefitDate}</p>
+                                            {b.amount > 0 && (
+                                                <p className="text-sm font-bold text-primary-700">{(b.amount || 0).toLocaleString('ar-DZ')} دج</p>
+                                            )}
+                                            {b.quantity > 0 && <p className="text-sm text-gray-600 font-medium">{b.quantity} وحدة</p>}
+                                            <p className="text-xs text-gray-400 mt-1">{new Date(b.benefit_date).toLocaleDateString('ar-DZ')}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -144,6 +178,4 @@ export default function BeneficiaryDetail({ family, onBack }: { family: Family; 
     );
 }
 
-// Need useState
-import { useState } from 'react';
-import { ArrowRight, Phone, MapPin, Users, Calendar, Tag, Edit } from 'lucide-react';
+// Removed redundant imports

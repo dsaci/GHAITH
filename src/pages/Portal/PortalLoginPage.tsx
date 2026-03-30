@@ -48,11 +48,18 @@ export default function PortalLoginPage() {
                         {loading ? '...' : 'دخول'}
                     </button>
                 </form>
-                <div className="mt-6 text-center text-sm space-y-2">
-                    <Link to="/portal" className="text-primary-600 block">
-                        إنشاء حساب
+                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
+                    <p className="text-gray-500 dark:text-slate-400 text-sm mb-3">هل أنت مستفيد؟</p>
+                    <Link to="/beneficiary/login" className="block w-full py-3 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-bold text-sm hover:bg-primary-100 transition-colors border border-primary-100 dark:border-primary-900/30">
+                        دخول فضاء المستفيد
                     </Link>
-                    <Link to="/" className="text-gray-500 block">
+                </div>
+
+                <div className="mt-6 text-center text-sm space-y-2 flex flex-col pt-2 border-t border-gray-50 dark:border-slate-800">
+                    <Link to="/portal" className="text-gray-400 hover:text-primary-600">
+                        الرجوع لاختيار البوابة
+                    </Link>
+                    <Link to="/" className="text-gray-400 hover:text-slate-900 dark:hover:text-white">
                         الرئيسية
                     </Link>
                 </div>

@@ -436,7 +436,7 @@ CREATE POLICY "report_reminders_write" ON report_reminders FOR ALL USING (is_top
 
 -- ── VOLUNTEER LOGS ───────────────────────────────────────────────────
 CREATE POLICY "volunteer_logs_select" ON volunteer_logs FOR SELECT USING (
-  volunteer_id IN (SELECT id FROM volunteers v JOIN external_users e ON e.id = v.external_user_id WHERE e.auth_id = auth.uid())
+  volunteer_id IN (SELECT v.id FROM volunteers v JOIN external_users e ON e.id = v.external_user_id WHERE e.auth_id = auth.uid())
   OR is_wilaya_user()
 );
 CREATE POLICY "volunteer_logs_write" ON volunteer_logs FOR ALL USING (is_wilaya_user()) WITH CHECK (is_wilaya_user());

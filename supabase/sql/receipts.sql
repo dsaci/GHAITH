@@ -120,6 +120,7 @@ ALTER TABLE benefit_receipts ENABLE ROW LEVEL SECURITY;
 -- branch_president: see own branch receipts
 -- board_member: see receipts (no financial value shown)
 --   → handled in frontend, not RLS
+DROP POLICY IF EXISTS "receipts_access" ON benefit_receipts;
 CREATE POLICY "receipts_access" ON benefit_receipts
   FOR SELECT USING (
     CASE get_my_role()
@@ -134,6 +135,7 @@ CREATE POLICY "receipts_access" ON benefit_receipts
     AND is_deleted = false
   );
 
+DROP POLICY IF EXISTS "receipts_insert" ON benefit_receipts;
 CREATE POLICY "receipts_insert" ON benefit_receipts
   FOR INSERT WITH CHECK (
     get_my_role() IN (
@@ -142,6 +144,7 @@ CREATE POLICY "receipts_insert" ON benefit_receipts
     )
   );
 
+DROP POLICY IF EXISTS "receipts_update" ON benefit_receipts;
 CREATE POLICY "receipts_update" ON benefit_receipts
   FOR UPDATE USING (
     CASE get_my_role()

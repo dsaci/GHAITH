@@ -16,11 +16,11 @@ export const bylawService = {
   // Get all active rules
   async getBylawRules() {
     const { data, error } = await supabase
-      .from('internal_bylaws')
+      .from('bylaw_articles')
       .select('*')
       .eq('is_active', true)
-      .order('chapter_order', { ascending: true })
-      .order('article_order', { ascending: true });
+      .order('chapter_number', { ascending: true })
+      .order('article_number', { ascending: true });
 
     if (error) throw error;
     return data as BylawRule[];
@@ -44,9 +44,9 @@ export const bylawService = {
       .from('bylaw_acknowledgments')
       .insert({
         user_id: userId,
-        agreed_at: new Date().toISOString(),
-        ip_address: '127.0.0.1', // Frontend mock, backend handles real IP securely
-        user_agent: navigator.userAgent
+        user_type: 'internal', // Default for now
+        acknowledged_at: new Date().toISOString(),
+        ip_address: '127.0.0.1' // Frontend mock, backend handles real IP securely
       });
 
     if (error) throw error;

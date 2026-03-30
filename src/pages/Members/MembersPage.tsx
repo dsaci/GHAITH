@@ -1,28 +1,78 @@
-import { useState } from 'react';
-import { Plus, Search, Phone, CreditCard } from 'lucide-react';
-import { MOCK_MEMBERS } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Phone, CreditCard, Loader2, Hospital } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Badge, Button, EmptyState } from '../../components/ui';
 import { MSILA_DAIRAS, MSILA_MUNICIPALITIES } from '../../data/msilaData';
-import type { MemberStatus } from '../../types';
+import type { MemberStatus, Member, MembershipType } from '../../types';
 
 const STATUS_LABELS: Record<MemberStatus, string> = { active: 'فعّال', inactive: 'غير فعّال', suspended: 'موقوف', resigned: 'استقال' };
 const STATUS_COLORS: Record<MemberStatus, 'green' | 'gray' | 'red' | 'orange'> = { active: 'green', inactive: 'gray', suspended: 'red', resigned: 'orange' };
 const TYPE_LABELS: Record<string, string> = { founder: 'مؤسس', active: 'فعّال', supporter: 'داعم', honorary: 'شرفي' };
 
 export default function MembersPage() {
+    const [allMembers, setAllMembers] = useState<Member[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [municipalityFilter, setMunicipalityFilter] = useState('');
 
-    const members = MOCK_MEMBERS.filter(m => {
-        const matchSearch = !search || m.fullName.includes(search) || m.membershipNumber.includes(search);
+    useEffect(() => {
+        fetchMembers();
+    }, []);
+
+    async function fetchMembers() {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('members')
+                .select('*, municipalities(name)')
+                .eq('is_deleted', false)
+                .order('full_name', { ascending: true });
+
+            if (error) throw error;
+
+            const mapped: Member[] = (data || []).map((m: any) => ({
+                id: m.id,
+                fullName: m.full_name,
+                phone: m.phone,
+                email: m.email,
+                address: m.address,
+                municipalityName: m.municipalities?.name || 'غير محدد',
+                profession: m.profession,
+                membershipNumber: m.membership_number,
+                membershipDate: m.membership_date,
+                membershipType: m.membership_type as MembershipType,
+                status: m.status as MemberStatus,
+                annualFeePaid: m.annual_fee_paid,
+                createdAt: m.created_at,
+            } as Member));
+
+            setAllMembers(mapped);
+        } catch (err) {
+            console.error('Error fetching members:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const members = allMembers.filter(m => {
+        const matchSearch = !search || m.fullName.includes(search) || m.membershipNumber.includes(search) || m.profession?.includes(search);
         const matchStatus = !statusFilter || m.status === statusFilter;
         const matchMunicipality = !municipalityFilter || m.municipalityName === municipalityFilter;
         return matchSearch && matchStatus && matchMunicipality;
     });
 
-    const activeCount = MOCK_MEMBERS.filter(m => m.status === 'active').length;
-    const unpaidCount = MOCK_MEMBERS.filter(m => !m.annualFeePaid).length;
+    const activeCount = allMembers.filter(m => m.status === 'active').length;
+    const unpaidCount = allMembers.filter(m => !m.annualFeePaid).length;
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+                <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+                <p className="text-gray-500 font-medium">جاري تحميل البيانات...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-5 animate-fade-in">
@@ -65,12 +115,16 @@ export default function MembersPage() {
                         <div key={m.id} className="card hover:shadow-md transition-shadow">
                             <div className="flex items-start gap-4">
                                 <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-700 font-bold text-xl shrink-0">
-                                    {m.fullName.charAt(0)}
+                                    {m.profession?.includes('طبيب') || m.profession?.includes('دكتور') ? (
+                                        <Hospital className="w-6 h-6" />
+                                    ) : (
+                                        m.fullName.charAt(0)
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-gray-900 truncate">{m.fullName}</h4>
                                     <p className="text-xs text-gray-500 font-mono">{m.membershipNumber}</p>
-                                    {m.roleInAssociation && <p className="text-xs text-primary-600 mt-0.5">{m.roleInAssociation}</p>}
+                                    {m.profession && <p className="text-xs text-primary-600 mt-0.5">{m.profession}</p>}
                                     <div className="flex gap-2 mt-2 flex-wrap">
                                         <Badge variant={STATUS_COLORS[m.status]}>{STATUS_LABELS[m.status]}</Badge>
                                         <Badge variant="gray">{TYPE_LABELS[m.membershipType]}</Badge>

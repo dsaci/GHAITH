@@ -45,6 +45,7 @@ export function StatCard({ title, value, subtitle, icon, color, trend }: StatCar
 interface BadgeProps {
     children: React.ReactNode;
     variant: 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'purple' | 'orange';
+    className?: string;
 }
 
 const BADGE_CLASSES = {
@@ -57,9 +58,9 @@ const BADGE_CLASSES = {
     orange: 'bg-orange-100 text-orange-800',
 };
 
-export function Badge({ children, variant }: BadgeProps) {
+export function Badge({ children, variant, className }: BadgeProps) {
     return (
-        <span className={clsx('badge', BADGE_CLASSES[variant])}>
+        <span className={clsx('badge', BADGE_CLASSES[variant], className)}>
             {children}
         </span>
     );

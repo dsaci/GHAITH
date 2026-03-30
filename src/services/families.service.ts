@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Family } from '../types';
+import { authService } from './auth.service';
 
 type FamilyRow = Record<string, unknown>;
 
@@ -95,3 +96,75 @@ export async function addBenefit(familyId: string, benefit: Record<string, unkno
         .single();
     return { data, error };
 }
+
+export const familiesService = {
+    getAll,
+    getById,
+    create,
+    update,
+    softDelete,
+    getBenefits,
+    addBenefit,
+    
+    async addBenefitWithTransaction(familyId: string, benefit: {
+        family_id: string;
+        benefit_type: string;
+        amount?: number;
+        description?: string;
+        benefit_date: string;
+        occasion_id?: string;
+        notes?: string;
+    }) {
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth.user?.id;
+        
+        // 1. Get family info for transaction description
+        const { data: family } = await supabase.from('families').select('family_name, branch_id').eq('id', familyId).single();
+        
+        // 2. Insert Benefit
+        const { data: benefitData, error: benefitError } = await supabase
+            .from('family_benefits')
+            .insert({ 
+                ...benefit, 
+                family_id: familyId,
+                approved_by: uid,
+                branch_id: family?.branch_id
+            })
+            .select('*')
+            .single();
+
+        if (benefitError) throw benefitError;
+
+        // 3. Insert Transaction if amount exists
+        if (benefit.amount && benefit.amount > 0) {
+            const { error: transError } = await supabase
+                .from('transactions')
+                .insert({
+                    transaction_type: 'expense',
+                    category: 'مساعدات اجتماعية',
+                    amount: benefit.amount,
+                    description: `مساعدة عائلية (${benefit.benefit_type}): ${family?.family_name}`,
+                    transaction_date: benefit.benefit_date,
+                    family_id: familyId,
+                    occasion_id: benefit.occasion_id,
+                    branch_id: family?.branch_id,
+                    created_by: uid,
+                    approved_by: uid
+                });
+            
+            if (transError) {
+                console.error('Failed to create transaction for benefit:', transError);
+                // We don't rollback since we don't have DB transactions here, but we log it
+            }
+        }
+
+        // 4. Log Audit Action
+        await authService.logAuditAction('create', 'family_benefits', benefitData.id, { 
+            family_id: familyId, 
+            type: benefit.benefit_type,
+            amount: benefit.amount 
+        });
+
+        return { data: benefitData };
+    }
+};

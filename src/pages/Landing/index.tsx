@@ -7,7 +7,9 @@ import {
     Activity,
     BookOpen,
     Phone,
-    Mail
+    Mail,
+    Facebook,
+    Instagram
 } from 'lucide-react';
 import { ASSOCIATION_INFO } from '../../data/associationInfo';
 
@@ -40,12 +42,19 @@ export default function LandingPage() {
                     <a href="#support" className="text-[14px] font-bold transition-colors text-[#1a2332] hover:text-[#3dd163]">دعم الجمعية</a>
                 </div>
 
-                <div className="flex-1 flex justify-end">
+                <div className="flex-1 flex justify-end gap-3">
+                    <button
+                        onClick={() => navigate('/beneficiary/login')}
+                        className="bg-[#3dd163] hover:bg-[#28a849] text-white px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all shadow-md shadow-[#3dd163]/20 flex items-center gap-2"
+                    >
+                        <Users className="w-4 h-4" />
+                        فضاء المستفيد
+                    </button>
                     <button
                         onClick={() => navigate('/login')}
-                        className="bg-white hover:bg-[#3dd163]/5 text-[#3dd163] border-2 border-[#3dd163] px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all shadow-sm"
+                        className="bg-white hover:bg-gray-50 text-[#1e3a5f] border border-gray-200 px-5 py-[8px] rounded-xl text-[14px] font-bold transition-all"
                     >
-                        دخول الأعضاء
+                        دخول الإدارة
                     </button>
                 </div>
             </nav>
@@ -462,6 +471,14 @@ export default function LandingPage() {
                                 <li className="flex items-center gap-3 text-[#3dd163] text-[13px]">
                                     <Mail className="w-5 h-5" />
                                     <span className="text-white/80">{ASSOCIATION_INFO.email}</span>
+                                </li>
+                                <li className="flex items-center gap-3 text-[#3dd163] text-[13px] pt-4 mt-2 border-t border-white/10">
+                                    <a href="https://www.facebook.com/Ghaithola28" target="_blank" rel="noreferrer" className="bg-white/5 hover:bg-[#3dd163] hover:text-[#1e3a5f] p-2 rounded-full transition-all">
+                                        <Facebook className="w-5 h-5" />
+                                    </a>
+                                    <a href="https://www.instagram.com/ghaith_msila/" target="_blank" rel="noreferrer" className="bg-white/5 hover:bg-[#3dd163] hover:text-[#1e3a5f] p-2 rounded-full transition-all">
+                                        <Instagram className="w-5 h-5" />
+                                    </a>
                                 </li>
                             </ul>
                         </div>
