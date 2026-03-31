@@ -122,6 +122,7 @@ UPDATE public.user_profiles SET space = 'branch' WHERE role IN ('branch_presiden
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "space_access" ON public.user_profiles;
+DROP POLICY IF EXISTS "admin_update_access" ON public.user_profiles;
 
 -- سياسة الرؤية: فحص مباشر للهوية لتجنب استدعاء الدوال المتكرر
 CREATE POLICY "space_access" ON public.user_profiles
