@@ -5,3 +5,12 @@ dist
 .env.*.local
 *.log
 .DS_Store
+
+# Legacy & Redundant Services (Ignored to avoid conflicts)
+src/services/auth.service.ts
+
+# Temporary & Build files
+.vercel
+.next
+build
+out
