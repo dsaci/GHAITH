@@ -145,10 +145,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {!collapsed && user && (
                     <div className="flex items-center gap-3 px-2 py-2 mb-2">
                         <div className="w-9 h-9 bg-primary-100 dark:bg-primary-900/40 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0">
-                            {user.fullName.charAt(0)}
+                            {(user?.fullName || user?.full_name || 'ع').charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{user.fullName}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">
+                                {user?.fullName || user?.full_name || 'عضو جديد'}
+                            </p>
                             <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{ROLE_LABELS[user.role] ?? user.role}</p>
                         </div>
                     </div>

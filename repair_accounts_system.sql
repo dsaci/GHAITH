@@ -51,15 +51,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_president_only
 ON public.user_profiles ((role))
 WHERE role = 'president';
 
--- 5️⃣ إصلاح الدالة البرمجية (V8.5 - حل الشاشة البيضاء وتوحيد المسميات)
--- ملاحظة: تم استخدام Aliases (مثل up.id) داخلياً، مع الحفاظ على مسميات الإخراج الأصلية للواجهة
+-- 5️⃣ إصلاح الدالة البرمجية (V10.0 - حل شامل للأعضاء ورؤساء الفروع)
+-- التغيير: إضافة عمود phone، وضمان عدم وجود NULL في الحقول الأساسية، وتوحيد المسميات
 DROP FUNCTION IF EXISTS public.get_my_profile();
 
 CREATE OR REPLACE FUNCTION public.get_my_profile()
 RETURNS TABLE (
-    id UUID,             -- المسمى الذي تتوقعه الواجهة (Frontend)
+    id UUID,
     full_name TEXT,
     email TEXT,
+    phone TEXT,          -- أضفنا الهاتف لأنه مطلوب في AuthContext
     role TEXT,
     space TEXT,
     branch_id UUID,
@@ -73,12 +74,13 @@ BEGIN
     RETURN QUERY
     SELECT 
         up.id::UUID AS id, 
-        up.full_name::TEXT AS full_name, 
-        up.email::TEXT AS email, 
-        up.role::TEXT AS role, 
-        up.space::TEXT AS space, 
+        COALESCE(up.full_name, 'عضو غير معرف')::TEXT AS full_name, 
+        COALESCE(up.email, '')::TEXT AS email, 
+        COALESCE(up.phone, '')::TEXT AS phone,
+        COALESCE(up.role, 'member')::TEXT AS role, 
+        COALESCE(up.space, 'member')::TEXT AS space, 
         up.branch_id::UUID AS branch_id, 
-        up.is_active::BOOLEAN AS is_active
+        COALESCE(up.is_active, true)::BOOLEAN AS is_active
     FROM public.user_profiles AS up
     WHERE up.id = auth.uid()
 
@@ -86,8 +88,9 @@ BEGIN
 
     SELECT 
       au.id::UUID AS id,
-      COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1))::TEXT AS full_name,
+      COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1), 'عضو جديد')::TEXT AS full_name,
       au.email::TEXT AS email,
+      COALESCE(au.raw_user_meta_data->>'phone', '')::TEXT AS phone,
       'member'::TEXT AS role,
       'member'::TEXT AS space,
       NULL::UUID AS branch_id,
@@ -99,6 +102,11 @@ BEGIN
     );
 END;
 $$;
+
+-- تحديث إجباري لرؤساء الفروع لضمان التوجيه الصحيح
+UPDATE public.user_profiles 
+SET space = 'branch' 
+WHERE role IN ('branch_president', 'manager') AND (space IS NULL OR space != 'branch');
 
 -- 6️⃣ تحسين الـ Row Level Security (RLS) ومنع التكرار (Recursion Proof)
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
