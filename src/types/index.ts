@@ -5,7 +5,12 @@ export type UserRole =
     | 'treasurer'
     | 'board_member'
     | 'branch_president'
+    | 'secretary'
+    | 'manager'
     | 'member';
+
+export type UserSpace = 'executive' | 'branch' | 'member';
+
 
 export type PortalType = 'volunteer' | 'donor' | 'beneficiary';
 export type ExternalUserStatus = 'pending' | 'active' | 'suspended' | 'rejected';
@@ -19,16 +24,19 @@ export interface Municipality {
 
 export interface User {
     id: string;
-    fullName: string;
-    username: string;
     email: string;
-    phone: string;
+    full_name: string;
+    fullName?: string;
     role: UserRole;
+    space: UserSpace;
+    branch_id?: string;
     branchId?: string;
-    isActive: boolean;
-    lastLogin?: string;
-    avatar?: string;
+    phone?: string;
+    status: 'active' | 'inactive';
+    is_active?: boolean;
+    isActive?: boolean;
 }
+
 
 /** Map DB / legacy role strings to UserRole */
 export function normalizeUserRole(role: string): UserRole {
@@ -378,12 +386,15 @@ export interface ReportReminder {
 export interface UserProfile {
   id: string;
   full_name: string;
+  email: string;
   phone: string;
   role: UserRole;
+  space: UserSpace;
   branch_id: string | null;
   is_active: boolean;
   last_login: string | null;
 }
+
 
 export interface ExternalUser {
   id: string;

@@ -10,15 +10,20 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
-/** يمنع رئيس الفرع من استخدام مسارات المكتب الولائي (يوجّه إلى لوحة الفرع) */
+/** يمنع مستخدمي الفروع من استخدام مسارات المكتب الولائي (يوجّه إلى لوحة الفرع) */
 export function WilayaInternalScope({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const loc = useLocation();
-    if (user?.role === 'branch_president' && !loc.pathname.startsWith('/branch')) {
+    
+    // إذا كان المستخدم ينتمي لفضاء الفروع ويحاول دخول مسارات الولاية
+    if (user?.space === 'branch' && !loc.pathname.startsWith('/branch')) {
         return <Navigate to="/branch/dashboard" replace />;
     }
+    
+    // العكس: إذا كان مستخدم تنفيذي يحاول دخول مسارات الفروع (اختياري، لكن هنا نتركه يدخل للمراقبة)
     return <>{children}</>;
 }
+
 
 export function RequireBranchPresident({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
@@ -26,6 +31,14 @@ export function RequireBranchPresident({ children }: { children: React.ReactNode
     if (user.role !== 'branch_president') return <Navigate to="/dashboard" replace />;
     return <>{children}</>;
 }
+
+export function RequireSpace({ space, children }: { space: 'executive' | 'branch' | 'member'; children: React.ReactNode }) {
+    const { user } = useAuth();
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.space !== space) return <Navigate to="/dashboard" replace />;
+    return <>{children}</>;
+}
+
 
 export function RequireRoles({ roles, children }: { roles: UserRole[]; children: React.ReactNode }) {
     const { user } = useAuth();

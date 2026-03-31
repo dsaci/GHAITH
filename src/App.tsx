@@ -7,13 +7,14 @@ import LoginPage from './pages/Login/LoginPage';
 import {
     RequireAuth,
     WilayaInternalScope,
-    RequireBranchPresident,
     RequireFinanceAccess,
+
     RequirePortalAdmin,
     RequireFinancialReportAccess,
     ExternalPortalRoute,
     ExternalPendingRoute,
-    RequireBeneficiaryAuth
+    RequireBeneficiaryAuth,
+    RequireSpace
 } from './components/routing/RouteGuards';
 
 const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
@@ -75,8 +76,9 @@ const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
 function LoginGate() {
     const { user } = useAuth();
     if (!user) return <LoginPage />;
-    return <Navigate to={user.role === 'branch_president' ? '/branch/dashboard' : '/dashboard'} replace />;
+    return <Navigate to={user.space === 'branch' ? '/branch/dashboard' : '/dashboard'} replace />;
 }
+
 
 function WilayaShell() {
     return (
@@ -91,12 +93,13 @@ function WilayaShell() {
 function BranchShell() {
     return (
         <RequireAuth>
-            <RequireBranchPresident>
+            <RequireSpace space="branch">
                 <MainLayout branchMode />
-            </RequireBranchPresident>
+            </RequireSpace>
         </RequireAuth>
     );
 }
+
 
 function AppRoutes() {
     return (

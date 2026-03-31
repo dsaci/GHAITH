@@ -33,6 +33,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
         case 'president':
         case 'vice_president':
         case 'treasurer':
+        case 'secretary':
             return {
                 canViewFinance: true,
                 canViewAllBranches: true,
@@ -57,6 +58,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
                 canViewAuditLogs: false,
             };
         case 'branch_president':
+        case 'manager':
             return {
                 canViewFinance: true,
                 canViewAllBranches: false,
@@ -83,6 +85,7 @@ export function computePermissions(role: UserRole | null | undefined): AuthPermi
             };
     }
 }
+
 
 export interface ExternalSession {
     authId: string;

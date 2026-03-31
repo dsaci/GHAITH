@@ -3,7 +3,11 @@ import type { User, UserRole } from '../types';
 import { normalizeUserRole } from '../types';
 import { getCurrentUser } from '../data/mockData';
 import { useAuthStore } from '../store/authStore';
-import * as authLib from '../lib/auth';
+import { 
+    loginInternal, 
+    logout as logoutSupabase, 
+    restoreSessionFromSupabase 
+} from '../lib/auth';
 import { loginNotificationService } from '../services/loginNotification.service';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -29,6 +33,12 @@ const ROLE_PERMISSIONS: Record<UserRole, Record<string, string[]>> = {
         '*': ['read'],
         portal_admin: ['read', 'update'],
     },
+    secretary: {
+        '*': ['create', 'read', 'update'],
+        documents: ['create', 'read', 'update', 'delete'],
+        mail: ['create', 'read', 'update', 'delete'],
+        meetings: ['create', 'read', 'update', 'delete'],
+    },
     board_member: {
         '*': ['read'],
         beneficiaries: ['create', 'read', 'update'],
@@ -38,8 +48,6 @@ const ROLE_PERMISSIONS: Record<UserRole, Record<string, string[]>> = {
         administration: ['read', 'update'],
         requests: ['read'],
         reports: ['read'],
-        planning: ['read'],
-        archive: ['read'],
     },
     branch_president: {
         dashboard: ['read'],
@@ -48,18 +56,21 @@ const ROLE_PERMISSIONS: Record<UserRole, Record<string, string[]>> = {
         documents: ['read', 'update'],
         members: ['read', 'update'],
         activities: ['read'],
-        archive: ['read'],
         administration: ['read', 'update'],
         requests: ['read'],
-        reports: ['read'],
-        planning: ['read'],
+    },
+    manager: {
+        dashboard: ['read'],
+        beneficiaries: ['read', 'update'],
+        finance: ['read'],
+        activities: ['read', 'update'],
     },
     member: {
         dashboard: ['read'],
         activities: ['read'],
-        archive: ['read'],
     },
 };
+
 
 function hydrateMockUserFromStorage(): void {
     const stored = getCurrentUser();
@@ -75,8 +86,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             if (isSupabaseConfigured) {
                 try {
-                    await authLib.restoreSessionFromSupabase();
-                    await authLib.restoreBeneficiarySession();
+                    const res = await restoreSessionFromSupabase();
+                    if (res) {
+                        const { user: supaUser, profile } = res;
+                        const u: User = {
+                            id: profile.id,
+                            email: supaUser.email || '',
+                            full_name: profile.full_name,
+                            fullName: profile.full_name,
+                            role: profile.role,
+                            space: profile.space,
+                            branch_id: profile.branch_id || undefined,
+                            branchId: profile.branch_id || undefined,
+                            phone: profile.phone,
+                            status: profile.is_active ? 'active' : 'inactive',
+                            is_active: profile.is_active,
+                            isActive: profile.is_active
+                        };
+                        useAuthStore.getState().setInternalUser(u);
+                    }
                 } catch (err) {
                     console.error('Session restore failed.', err);
                 }
@@ -92,15 +120,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (username: string, password: string) => {
         try {
-            const res = await authLib.loginInternal(username, password);
-            if (!res.ok) return res;
-            
-            const user = useAuthStore.getState().internalUser;
-            if (user) {
-                loginNotificationService.recordLogin(user.id);
-            }
+            const res = await loginInternal(username, password);
+            if (!res) throw new Error('فشل تسجيل الدخول');
+
+            const { user: supaUser, profile } = res;
+            const u: User = {
+                id: profile.id,
+                email: supaUser.email || '',
+                full_name: profile.full_name,
+                fullName: profile.full_name,
+                role: profile.role,
+                space: profile.space,
+                branch_id: profile.branch_id || undefined,
+                branchId: profile.branch_id || undefined,
+                phone: profile.phone,
+                status: profile.is_active ? 'active' : 'inactive',
+                is_active: profile.is_active,
+                isActive: profile.is_active
+            };
+
+            useAuthStore.getState().setInternalUser(u);
+            loginNotificationService.recordLogin(u.id);
             sessionStorage.setItem('justLoggedIn', 'true');
-            return { ok: true, redirect: res.redirect };
+
+            const redirect = u.space === 'branch' ? '/branch/dashboard' : '/dashboard';
+            return { ok: true, redirect };
         } catch (err: any) {
             console.error('Login error', err);
             return { ok: false, error: err.message || 'فشل تسجيل الدخول' };
@@ -108,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        await authLib.logout();
+        await logoutSupabase();
     };
 
     const hasRole = (roles: UserRole[]): boolean => (user ? roles.includes(user.role) : false);
