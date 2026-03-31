@@ -51,14 +51,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_president_only
 ON public.user_profiles ((role))
 WHERE role = 'president';
 
--- 5️⃣ إصلاح الدوال البرمجية (RPC) مع نظام Fallback وتأمين مسار البحث (Hardened Security)
--- ملاحظة: تم إلغاء DROP لـ get_my_role و get_my_space لتفادي كسر سياسات الـ RLS المرتبطة بها
+-- 5️⃣ إصلاح الدالة البرمجية (V8.5 - حل الشاشة البيضاء وتوحيد المسميات)
+-- ملاحظة: تم استخدام Aliases (مثل up.id) داخلياً، مع الحفاظ على مسميات الإخراج الأصلية للواجهة
 DROP FUNCTION IF EXISTS public.get_my_profile();
 
--- دالة الملف الشخصي (نظام الهوية الموحد)
 CREATE OR REPLACE FUNCTION public.get_my_profile()
 RETURNS TABLE (
-    id UUID,
+    id UUID,             -- المسمى الذي تتوقعه الواجهة (Frontend)
     full_name TEXT,
     email TEXT,
     role TEXT,
@@ -72,86 +71,59 @@ SET search_path = public, pg_temp
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT up.id, up.full_name, up.email, up.role, up.space, up.branch_id, up.is_active
-    FROM user_profiles up
+    SELECT 
+        up.id::UUID AS id, 
+        up.full_name::TEXT AS full_name, 
+        up.email::TEXT AS email, 
+        up.role::TEXT AS role, 
+        up.space::TEXT AS space, 
+        up.branch_id::UUID AS branch_id, 
+        up.is_active::BOOLEAN AS is_active
+    FROM public.user_profiles AS up
     WHERE up.id = auth.uid()
 
     UNION ALL
 
     SELECT 
-      au.id,
-      COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1)),
-      au.email,
-      'member'::TEXT,
-      'member'::TEXT,
-      NULL::UUID,
-      true
-    FROM auth.users au
+      au.id::UUID AS id,
+      COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1))::TEXT AS full_name,
+      au.email::TEXT AS email,
+      'member'::TEXT AS role,
+      'member'::TEXT AS space,
+      NULL::UUID AS branch_id,
+      true::BOOLEAN AS is_active
+    FROM auth.users AS au
     WHERE au.id = auth.uid()
     AND NOT EXISTS (
-      SELECT 1 FROM user_profiles WHERE id = auth.uid()
+      SELECT 1 FROM public.user_profiles WHERE user_profiles.id = auth.uid()
     );
 END;
 $$;
 
--- دالة جلب الدور (تحصين أمني)
-CREATE OR REPLACE FUNCTION public.get_my_role()
-RETURNS TEXT
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-STABLE
-AS $$
-  SELECT COALESCE(
-    (SELECT role FROM user_profiles WHERE id = auth.uid()),
-    'member'
-  );
-$$;
-
--- دالة جلب الفضاء (تحصين أمني)
-CREATE OR REPLACE FUNCTION public.get_my_space()
-RETURNS TEXT
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-STABLE
-AS $$
-  SELECT COALESCE(
-    (SELECT space FROM user_profiles WHERE id = auth.uid()),
-    'member'
-  );
-$$;
-
-GRANT EXECUTE ON FUNCTION public.get_my_profile() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_my_space() TO authenticated;
-
--- 6️⃣ تحسين الـ Row Level Security (RLS Hardening)
+-- 6️⃣ تحسين الـ Row Level Security (RLS) ومنع التكرار (Recursion Proof)
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "authenticated_self_access" ON public.user_profiles;
-DROP POLICY IF EXISTS "role_based_access" ON public.user_profiles;
-DROP POLICY IF EXISTS "admin_update_access" ON public.user_profiles;
 DROP POLICY IF EXISTS "space_access" ON public.user_profiles;
+DROP POLICY IF EXISTS "admin_update_access" ON public.user_profiles;
 
--- سياسة الرؤية: الربط بين الهوية والفضاء (Scope Isolation)
+-- سياسة الرؤية: فحص مباشر للهوية لتجنب استدعاء الدوال المتكرر
 CREATE POLICY "space_access" ON public.user_profiles
 FOR SELECT
 TO authenticated
 USING (
   auth.uid() = id
-  OR public.get_my_space() = 'executive'
+  OR role IN ('president','vice_president','treasurer') 
 );
 
--- سياسة التعديل: حماية الإدخال بقيود التحقق (With Check)
+-- سياسة التعديل: فحص مباشر للأدوار
 CREATE POLICY "admin_update_access" ON public.user_profiles
 FOR UPDATE
 TO authenticated
 USING (
-  public.get_my_role() IN ('president','vice_president')
+  role IN ('president','vice_president')
 )
 WITH CHECK (
-  public.get_my_role() IN ('president','vice_president')
+  role IN ('president','vice_president')
 );
 
 -- 7️⃣ الأتمتة: التريجر التلقائي المحمي
