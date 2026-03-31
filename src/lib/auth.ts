@@ -97,11 +97,7 @@ export async function loginInternal(
         return { ok: false, error: authErr?.message || 'فشل تسجيل الدخول' };
     }
 
-    const { data: profile, error: pErr } = await supabase
-        .from('user_profiles')
-        .select('id,full_name,phone,role,branch_id,is_active')
-        .eq('id', auth.user.id)
-        .maybeSingle();
+    const { data: profile, error: pErr } = await supabase.rpc('get_my_profile').maybeSingle();
 
     if (pErr || !profile) {
         await supabase.auth.signOut();
@@ -285,11 +281,7 @@ export async function restoreSessionFromSupabase(): Promise<void> {
 
     const uid = session.user.id;
 
-    const { data: int } = await supabase
-        .from('user_profiles')
-        .select('id,full_name,phone,role,branch_id,is_active')
-        .eq('id', uid)
-        .maybeSingle();
+    const { data: int } = await supabase.rpc('get_my_profile').maybeSingle();
 
     if (int) {
         const user = rowToUser(session.user.email || '', int as InternalProfileRow);

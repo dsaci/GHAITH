@@ -59,7 +59,7 @@ export async function create(
 ) {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
-    const { data: profile } = await supabase.from('user_profiles').select('branch_id').eq('id', uid ?? '').maybeSingle();
+    const { data: profile } = await supabase.rpc('get_my_profile').maybeSingle();
     const row = {
         ...data,
         registered_by: uid,
