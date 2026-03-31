@@ -51,68 +51,77 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_president_only
 ON public.user_profiles ((role))
 WHERE role = 'president';
 
--- 5️⃣ إصلاح الدالة البرمجية (V10.0 - حل شامل للأعضاء ورؤساء الفروع)
--- التغيير: إضافة عمود phone، وضمان عدم وجود NULL في الحقول الأساسية، وتوحيد المسميات
-DROP FUNCTION IF EXISTS public.get_my_profile();
+-- ══════════════════════════════════════════════════════
+-- سكريبت غيث الموحد - الإصدار النهائي (V10.5)
+-- وظيفة الكود: فك القيود + مزامنة الحسابات + إصلاح الدالة
+-- ══════════════════════════════════════════════════════
 
+-- 1️⃣ أولاً: فك قيود الأدوار نهائياً لضمان قبول الحسابات الجديدة
+ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS user_profiles_role_check;
+ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check 
+CHECK (role IN ('president', 'vice_president', 'treasurer', 'board_member', 'branch_president', 'manager', 'member', 'donor', 'beneficiary'));
+
+-- 2️⃣ ثانياً: تحديث دالة البروفايل (الإصدار المحصن V10.3) لمنع الشاشة البيضاء
 CREATE OR REPLACE FUNCTION public.get_my_profile()
-RETURNS TABLE (
-    id UUID,
-    full_name TEXT,
-    email TEXT,
-    phone TEXT,          -- أضفنا الهاتف لأنه مطلوب في AuthContext
-    role TEXT,
-    space TEXT,
-    branch_id UUID,
-    is_active BOOLEAN
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
+RETURNS TABLE (id UUID, full_name TEXT, email TEXT, phone TEXT, role TEXT, space TEXT, branch_id UUID, is_active BOOLEAN)
 AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        up.id::UUID AS id, 
-        COALESCE(up.full_name, 'عضو غير معرف')::TEXT AS full_name, 
-        COALESCE(up.email, '')::TEXT AS email, 
-        COALESCE(up.phone, '')::TEXT AS phone,
-        COALESCE(up.role, 'member')::TEXT AS role, 
-        COALESCE(up.space, 'member')::TEXT AS space, 
-        up.branch_id::UUID AS branch_id, 
-        COALESCE(up.is_active, true)::BOOLEAN AS is_active
-    FROM public.user_profiles AS up
-    WHERE up.id = auth.uid()
-
+        up.id::UUID, COALESCE(up.full_name, 'عضو')::TEXT, COALESCE(up.email, '')::TEXT, 
+        COALESCE(up.phone, '')::TEXT, COALESCE(up.role, 'member')::TEXT, 
+        COALESCE(up.space, 'member')::TEXT, up.branch_id::UUID, COALESCE(up.is_active, true)
+    FROM public.user_profiles up WHERE up.id = auth.uid()
     UNION ALL
-
     SELECT 
-      au.id::UUID AS id,
-      COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1), 'عضو جديد')::TEXT AS full_name,
-      au.email::TEXT AS email,
-      COALESCE(au.raw_user_meta_data->>'phone', '')::TEXT AS phone,
-      'member'::TEXT AS role,
-      'member'::TEXT AS space,
-      NULL::UUID AS branch_id,
-      true::BOOLEAN AS is_active
-    FROM auth.users AS au
-    WHERE au.id = auth.uid()
-    AND NOT EXISTS (
-      SELECT 1 FROM public.user_profiles WHERE user_profiles.id = auth.uid()
-    );
+        au.id::UUID, COALESCE(au.raw_user_meta_data->>'full_name', 'عضو جديد')::TEXT, 
+        au.email::TEXT, '', 'member', 'member', NULL, true
+    FROM auth.users au WHERE au.id = auth.uid() 
+    AND NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE id = auth.uid());
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- تحديث إجباري لرؤساء الفروع لضمان التوجيه الصحيح
-UPDATE public.user_profiles 
-SET space = 'branch' 
-WHERE role IN ('branch_president', 'manager') AND (space IS NULL OR space != 'branch');
+-- 3️⃣ ثالثاً: إنشاء ومزامنة حسابات (صلاح، نجم الدين، أشواق) بكلمة سر Ghaith2026
+DO $$ 
+DECLARE v_user_id UUID; BEGIN
+  -- غضبان صلاح
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'salah.g@ghaith.dz';
+  IF v_user_id IS NULL THEN
+    v_user_id := gen_random_uuid();
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role, raw_user_meta_data)
+    VALUES (v_user_id, 'salah.g@ghaith.dz', crypt('Ghaith2026', gen_salt('bf')), NOW(), 'authenticated', 'authenticated', '{"full_name": "غضبان صلاح"}'::jsonb);
+  END IF;
+  INSERT INTO public.user_profiles (id, full_name, role, space, is_active)
+  VALUES (v_user_id, 'غضبان صلاح', 'board_member', 'member', true) ON CONFLICT (id) DO UPDATE SET role='board_member', space='member';
+
+  -- نجم الدين ساسي
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'nadjm.saci@ghaith.dz';
+  IF v_user_id IS NULL THEN
+    v_user_id := gen_random_uuid();
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role, raw_user_meta_data)
+    VALUES (v_user_id, 'nadjm.saci@ghaith.dz', crypt('Ghaith2026', gen_salt('bf')), NOW(), 'authenticated', 'authenticated', '{"full_name": "نجم الدين ساسي"}'::jsonb);
+  END IF;
+  INSERT INTO public.user_profiles (id, full_name, role, space, is_active)
+  VALUES (v_user_id, 'نجم الدين ساسي', 'board_member', 'member', true) ON CONFLICT (id) DO UPDATE SET role='board_member', space='member';
+
+  -- جغبوب أشواق
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'achwak.j@ghaith.dz';
+  IF v_user_id IS NULL THEN
+    v_user_id := gen_random_uuid();
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role, raw_user_meta_data)
+    VALUES (v_user_id, 'achwak.j@ghaith.dz', crypt('Ghaith2026', gen_salt('bf')), NOW(), 'authenticated', 'authenticated', '{"full_name": "جغبوب أشواق"}'::jsonb);
+  END IF;
+  INSERT INTO public.user_profiles (id, full_name, role, space, is_active)
+  VALUES (v_user_id, 'جغبوب أشواق', 'board_member', 'member', true) ON CONFLICT (id) DO UPDATE SET role='board_member', space='member';
+END $$;
+
+-- 4️⃣ رابعاً: تثبيت مسار التوجيه لرؤساء الفروع
+UPDATE public.user_profiles SET space = 'branch' WHERE role IN ('branch_president', 'manager');
 
 -- 6️⃣ تحسين الـ Row Level Security (RLS) ومنع التكرار (Recursion Proof)
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "space_access" ON public.user_profiles;
-DROP POLICY IF EXISTS "admin_update_access" ON public.user_profiles;
 
 -- سياسة الرؤية: فحص مباشر للهوية لتجنب استدعاء الدوال المتكرر
 CREATE POLICY "space_access" ON public.user_profiles
