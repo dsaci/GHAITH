@@ -157,7 +157,38 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 8️⃣ إصلاح الحسابات المفقودة حالياً
+-- 8️⃣ إصلاح الحسابات المفقودة حالياً ومبياتها
+-- سكريبت مزامنة الأعضاء المسجلين (MEM-XXXX) مع نظام الدخول
+DO $$ 
+DECLARE
+  rec RECORD;
+  v_user_id UUID;
+BEGIN
+  -- قائمة الحسابات المطلوبة
+  CREATE TEMP TABLE tmp_members (name TEXT, email TEXT);
+  INSERT INTO tmp_members VALUES 
+  ('غضبان صلاح', 'salah.g@ghaith.dz'),
+  ('نجم الدين ساسي', 'nadjm.saci@ghaith.dz'),
+  ('جغبوب أشواق', 'achwak.j@ghaith.dz');
+
+  FOR rec IN SELECT * FROM tmp_members LOOP
+    -- التحقق من وجود الحساب
+    SELECT id INTO v_user_id FROM auth.users WHERE email = rec.email;
+    
+    -- إنشاء الحساب إذا كان مفقوداً بكلمة سر Ghaith2026
+    IF v_user_id IS NULL THEN
+      v_user_id := gen_random_uuid();
+      INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role, raw_user_meta_data)
+      VALUES (v_user_id, rec.email, crypt('Ghaith2026', gen_salt('bf')), NOW(), 'authenticated', 'authenticated', jsonb_build_object('full_name', rec.name));
+    END IF;
+
+    -- تحديث البروفايل وربطه بالفضاء الصحيح
+    INSERT INTO public.user_profiles (id, full_name, role, space, is_active)
+    VALUES (v_user_id, rec.name, 'board_member', 'member', true)
+    ON CONFLICT (id) DO UPDATE SET role = 'board_member', space = 'member';
+  END LOOP;
+END $$;
+
 INSERT INTO public.user_profiles (id, full_name, email, role, space, is_active)
 SELECT 
     au.id,
