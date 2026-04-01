@@ -1,5 +1,4 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from '../ui';
 
@@ -8,36 +7,27 @@ interface BylawGuardProps {
 }
 
 /**
- * BylawGuard - Hardened Production Implementation
- * Uses cached acknowledgment state from AuthContext to prevent redundant DB calls.
- * Ensures the platform is secure while maintaining high performance.
+ * BylawGuard - Hardened Production Implementation (Non-Blocking)
+ * Now only handles loading states, allowing access even if bylaws are not signed.
  */
 export function BylawGuard({ children }: BylawGuardProps) {
-    const { user, isLoading: authLoading, hasAcknowledgedBylaws, isBylawLoading } = useAuth();
-    const location = useLocation();
+    const { isLoading: authLoading, isBylawLoading } = useAuth();
 
-    // 1. Handle Loading States (Auth initialization + Cached Bylaw check)
-    // Architect Requirement: Wait for both to be ready before making a routing decision.
+    // 1. Handle Loading States
     if (authLoading || isBylawLoading) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
                 <div className="text-center space-y-4">
                     <LoadingSpinner size="lg" />
-                    <p className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">جاري التحقق من الصلاحيات...</p>
+                    <p className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">جاري التحميل...</p>
                 </div>
             </div>
         );
     }
 
-    /**
-     * 2. Security Enforcement: Redirect to regulations if agreement is missing.
-     * We strictly check 'hasAcknowledgedBylaws' which is populated server-side via RPC.
-     * Ignore for non-authenticated users or if already on the regulations page.
-     */
-    if (user && !hasAcknowledgedBylaws && location.pathname !== '/regulations') {
-        process.env.NODE_ENV !== 'production' && console.log('BylawGuard: [SECURITY] Redirecting to /regulations (Consent Required)');
-        return <Navigate to="/regulations" state={{ from: location }} replace />;
-    }
-
+    // 2. Security Enforcement: DISABLED (as requested)
+    // We no longer block access if hasAcknowledgedBylaws is false.
+    // The bylaws will be displayed as a non-blocking informational popup instead.
+    
     return <>{children}</>;
 }

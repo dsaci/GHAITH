@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { Button, StatCard, Badge } from '../../components/ui';
 import ActivityForecastDashboard from './ActivityForecastDashboard';
 import QuickBenefitModal from '../../components/modals/QuickBenefitModal';
+import { BylawNoticeModal } from '../../components/modals/BylawNoticeModal';
 import type { DashboardStats } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { getPortalRequests, PortalRequestView } from '../../services/admin.portal.service';
@@ -411,6 +412,8 @@ export default function DashboardPage() {
                 onClose={() => setShowQuickBenefit(false)} 
                 onSuccess={fetchDashboardData}
             />
+
+            <BylawNoticeModal />
         </div>
     );
 }
