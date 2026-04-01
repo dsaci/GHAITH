@@ -15,7 +15,6 @@ import {
     RequireBeneficiaryAuth,
     RequireSpace
 } from './components/routing/RouteGuards';
-import { BylawGuard as BylawShield } from './components/routing/BylawGuard';
 import { LoadingSpinner } from './components/ui';
 
 // Lazy loaded components
@@ -83,11 +82,9 @@ function LoginGate() {
 function WilayaShell() {
     return (
         <RequireAuth>
-            <BylawShield>
-                <WilayaInternalScope>
-                    <MainLayout branchMode={false} />
-                </WilayaInternalScope>
-            </BylawShield>
+            <WilayaInternalScope>
+                <MainLayout branchMode={false} />
+            </WilayaInternalScope>
         </RequireAuth>
     );
 }
@@ -95,11 +92,9 @@ function WilayaShell() {
 function BranchShell() {
     return (
         <RequireAuth>
-            <BylawShield>
-                <RequireSpace space="branch">
-                    <MainLayout branchMode />
-                </RequireSpace>
-            </BylawShield>
+            <RequireSpace space="branch">
+                <MainLayout branchMode />
+            </RequireSpace>
         </RequireAuth>
     );
 }

@@ -6,7 +6,6 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Badge, StatCard } from '../../components/ui';
-import { BylawNoticeModal } from '../../components/modals/BylawNoticeModal';
 import type { BenefitReceipt, AidRequest } from '../../types';
 
 export default function BeneficiaryDashboard() {
@@ -142,7 +141,6 @@ export default function BeneficiaryDashboard() {
                     </div>
                 </div>
             </div>
-            <BylawNoticeModal />
         </div>
     );
 }
