@@ -10,13 +10,18 @@ import {
 } from '../lib/auth';
 import { loginNotificationService } from '../services/loginNotification.service';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { bylawService } from '../services/bylaw.service';
 
 interface AuthContextType {
     user: User | null;
+    isLoading: boolean;
+    hasAcknowledgedBylaws: boolean;
+    isBylawLoading: boolean;
     login: (username: string, password: string) => Promise<{ ok: boolean; redirect?: string; error?: string }>;
     logout: () => Promise<void>;
     hasRole: (roles: UserRole[]) => boolean;
     canAccess: (resource: string, action: 'create' | 'read' | 'update' | 'delete') => boolean;
+    refreshBylawStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -81,6 +86,24 @@ function hydrateMockUserFromStorage(): void {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const user = useAuthStore((s) => s.internalUser);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [hasAcknowledgedBylaws, setHasAcknowledgedBylaws] = React.useState(true); // Default to true to prevent flash
+    const [isBylawLoading, setIsBylawLoading] = React.useState(false);
+
+    const refreshBylawStatus = async () => {
+        if (!isSupabaseConfigured) return;
+        try {
+            setIsBylawLoading(true);
+            const needsAck = await bylawService.needsAcknowledgment();
+            setHasAcknowledgedBylaws(!needsAck);
+        } catch (err) {
+            console.error('Failed to check bylaw status', err);
+            // On error, we assume true to avoid blocking the user unless it's critical
+            setHasAcknowledgedBylaws(true);
+        } finally {
+            setIsBylawLoading(false);
+        }
+    };
 
     useEffect(() => {
         (async () => {
@@ -107,6 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 } catch (err) {
                     console.error('Session restore failed.', err);
+                } finally {
+                    await refreshBylawStatus();
+                    setIsLoading(false);
                 }
                 const s = useAuthStore.getState();
                 if (!s.internalUser && !s.externalSession && !s.beneficiarySession) {
@@ -114,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             } else {
                 hydrateMockUserFromStorage();
+                setIsLoading(false);
             }
         })();
     }, []);
@@ -142,6 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             useAuthStore.getState().setInternalUser(u);
             loginNotificationService.recordLogin(u.id);
             sessionStorage.setItem('justLoggedIn', 'true');
+            
+            await refreshBylawStatus();
 
             const redirect = u.space === 'branch' ? '/branch/dashboard' : '/dashboard';
             return { ok: true, redirect };
@@ -166,7 +195,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, hasRole, canAccess }}>{children}</AuthContext.Provider>
+        <AuthContext.Provider value={{ 
+            user, 
+            isLoading, 
+            hasAcknowledgedBylaws, 
+            isBylawLoading, 
+            login, 
+            logout, 
+            hasRole, 
+            canAccess,
+            refreshBylawStatus
+        }}>{children}</AuthContext.Provider>
     );
 }
 

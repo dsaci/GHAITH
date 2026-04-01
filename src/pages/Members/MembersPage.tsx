@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Phone, CreditCard, Loader2, Hospital } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { graphqlRequest } from '../../lib/graphql';
+import { GET_MEMBERS_QUERY } from '../../services/queries/member.queries';
 import { Badge, Button, EmptyState } from '../../components/ui';
 import { MSILA_DAIRAS, MSILA_MUNICIPALITIES } from '../../data/msilaData';
 import type { MemberStatus, Member, MembershipType } from '../../types';
@@ -23,28 +25,67 @@ export default function MembersPage() {
     async function fetchMembers() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('members')
-                .select('*, municipalities(name)')
-                .eq('is_deleted', false)
-                .order('full_name', { ascending: true });
+            let data: any[] = [];
+            let rlsAnomaly = false;
+            
+            // 1. Try GraphQL (Senior Architect's requirement)
+            try {
+                const sessionRes = await supabase.auth.getSession();
+                const accessToken = sessionRes.data.session?.access_token;
+                
+                if (!accessToken) throw new Error('No access token for GraphQL');
 
-            if (error) throw error;
+                const gqlResponse = await graphqlRequest<any>(GET_MEMBERS_QUERY, {}, accessToken);
+                
+                if (!gqlResponse?.membersCollection) {
+                    throw new Error('Malformed GraphQL response: membersCollection missing');
+                }
 
-            const mapped: Member[] = (data || []).map((m: any) => ({
+                data = gqlResponse.membersCollection.edges.map((edge: any) => edge.node);
+                
+                // [SECURITY HARDENING] Anomaly Detection: Compare with REST head count to detect silent RLS failures
+                const { count: restCount, error: countError } = await supabase
+                    .from('members')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('is_deleted', false);
+
+                if (!countError && restCount !== null && data.length < restCount) {
+                    rlsAnomaly = true;
+                    console.error(`[SECURITY] Silent RLS Anomaly Detected! GraphQL returned ${data.length} records, but REST reports ${restCount}. Check RLS policies.`);
+                }
+
+                console.log(`Fetched ${data.length} members via GraphQL ${rlsAnomaly ? '(with RLS anomalies)' : ''}`);
+            } catch (gqlError) {
+                // 2. Fallback to REST (Senior Architect's fail-safe requirement)
+                console.warn('GraphQL Fetch Resilience: Falling back to REST due to error:', gqlError);
+                
+                const { data: restData, error: restError } = await supabase
+                    .from('members')
+                    .select('*, municipalities(name)')
+                    .eq('is_deleted', false)
+                    .order('full_name', { ascending: true });
+
+                if (restError) {
+                    console.error('Critical Failure: Both GraphQL and REST fetch failed.', restError);
+                    throw restError;
+                }
+                data = restData || [];
+            }
+
+            const mapped: Member[] = data.map((m: any) => ({
                 id: m.id,
-                fullName: m.full_name,
+                fullName: m.full_name || m.fullName,
                 phone: m.phone,
                 email: m.email,
                 address: m.address,
                 municipalityName: m.municipalities?.name || 'غير محدد',
                 occupation: m.occupation,
-                membershipNumber: m.membership_number,
-                membershipDate: m.membership_date,
-                membershipType: m.membership_type as MembershipType,
-                status: m.status as MemberStatus,
-                annualFeePaid: m.annual_fee_paid,
-                createdAt: m.created_at,
+                membershipNumber: m.membership_number || m.membershipNumber,
+                membershipDate: m.membership_date || m.membershipDate,
+                membershipType: (m.membership_type || m.membershipType) as MembershipType,
+                status: (m.status) as MemberStatus,
+                annualFeePaid: m.annual_fee_paid ?? m.annualFeePaid,
+                createdAt: m.created_at || m.createdAt,
             } as Member));
 
             setAllMembers(mapped);

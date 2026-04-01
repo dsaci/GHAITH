@@ -1,6 +1,32 @@
-import { FileText, Shield, Award, BookOpen } from 'lucide-react';
+import { FileText, Shield, Award, BookOpen, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { bylawService } from '../../services/bylaw.service';
+import toast from 'react-hot-toast';
 
 export default function RegulationsPage() {
+    const [agreed, setAgreed] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleAcceptance = async () => {
+        if (!agreed) {
+            toast.error('يرجى الموافقة على الميثاق أولاً');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await bylawService.recordAgreement();
+            toast.success('تم تسجيل موافقتك بنجاح');
+            // Refresh page to trigger guard update or manual navigate
+            window.location.href = '/dashboard';
+        } catch (error) {
+            console.error('Acceptance failed:', error);
+            toast.error('فشل تسجيل الموقف، يرجى المحاولة لاحقاً');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto space-y-12 py-8 animate-fade-in font-['Cairo'] pb-24" dir="rtl">
             {/* Header */}
@@ -100,13 +126,53 @@ export default function RegulationsPage() {
                 </div>
             </section>
 
-            {/* Footer Note */}
-            <div className="text-center text-gray-500 dark:text-slate-400 text-sm">
-                <p>تم المصادقة على هذا الميثاق من طرف المكتب الولائي لجمعية غيث.</p>
-                <p className="mt-2 flex items-center justify-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    تحميل نسخة PDF (قريباً)
-                </p>
+            {/* Footer Note & Acceptance Block */}
+            <div className="space-y-8 pb-12">
+                <div className="bg-ghaith-navy/5 dark:bg-slate-900/40 p-8 rounded-3xl border-2 border-dashed border-ghaith-navy/20 dark:border-slate-700 max-w-2xl mx-auto">
+                    <div className="space-y-6">
+                        <label className="flex items-start gap-4 cursor-pointer group">
+                            <div className="relative flex items-center mt-1">
+                                <input 
+                                    type="checkbox" 
+                                    className="peer h-6 w-6 cursor-pointer appearance-none rounded-md border border-ghaith-navy/30 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all checked:border-ghaith-navy checked:bg-ghaith-navy"
+                                    checked={agreed}
+                                    onChange={(e) => setAgreed(e.target.checked)}
+                                />
+                                <CheckCircle2 className="absolute h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100 left-1" />
+                            </div>
+                            <span className="text-gray-700 dark:text-slate-300 font-bold group-hover:text-ghaith-navy transition-colors select-none">
+                                أقر أنا كعضو في جمعية غيث أنني قرأت وفهمت القانون الأساسي والنظام الداخلي وألتزم بالعمل بموجبهما.
+                            </span>
+                        </label>
+
+                        <button
+                            onClick={handleAcceptance}
+                            disabled={!agreed || loading}
+                            className={`w-full py-4 rounded-2xl font-bold text-lg transition-all transform active:scale-95 shadow-lg flex items-center justify-center gap-3 ${
+                                agreed && !loading
+                                    ? 'bg-ghaith-navy text-white hover:bg-ghaith-navy/90 hover:shadow-ghaith-navy/20'
+                                    : 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed'
+                            }`}
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    جاري الحفظ...
+                                </>
+                            ) : (
+                                'تأكيد الموافقة والمتابعة'
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="text-center text-gray-500 dark:text-slate-400 text-sm">
+                    <p>تم المصادقة على هذا الميثاق من طرف المكتب الولائي لجمعية غيث.</p>
+                    <p className="mt-2 flex items-center justify-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        تحميل نسخة PDF (قريباً)
+                    </p>
+                </div>
             </div>
         </div>
     );

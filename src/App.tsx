@@ -8,7 +8,6 @@ import {
     RequireAuth,
     WilayaInternalScope,
     RequireFinanceAccess,
-
     RequirePortalAdmin,
     RequireFinancialReportAccess,
     ExternalPortalRoute,
@@ -16,7 +15,10 @@ import {
     RequireBeneficiaryAuth,
     RequireSpace
 } from './components/routing/RouteGuards';
+import { BylawGuard as BylawShield } from './components/routing/BylawGuard';
+import { LoadingSpinner } from './components/ui';
 
+// Lazy loaded components
 const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
 const BeneficiariesPage = React.lazy(() => import('./pages/Beneficiaries/BeneficiariesPage'));
 const BenefitFormPage = React.lazy(() => import('./pages/Beneficiaries/BenefitForm'));
@@ -64,8 +66,7 @@ const HonorWallPage = React.lazy(() => import('./pages/HonorWallPage'));
 const PublicArchivePage = React.lazy(() => import('./pages/Archive/PublicArchivePage'));
 const RegulationsPage = React.lazy(() => import('./pages/Rules/RegulationsPage'));
 const RegistrationRequests = React.lazy(() => import('./pages/Admin/Portal/RegistrationRequests'));
-
-import { LoadingSpinner } from './components/ui';
+const PortalRequestsPage = React.lazy(() => import('./pages/Admin/Portal/PortalRequestsPage'));
 
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
     <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center p-12"><LoadingSpinner size="lg" /></div>}>
@@ -79,13 +80,14 @@ function LoginGate() {
     return <Navigate to={user.space === 'branch' ? '/branch/dashboard' : '/dashboard'} replace />;
 }
 
-
 function WilayaShell() {
     return (
         <RequireAuth>
-            <WilayaInternalScope>
-                <MainLayout branchMode={false} />
-            </WilayaInternalScope>
+            <BylawShield>
+                <WilayaInternalScope>
+                    <MainLayout branchMode={false} />
+                </WilayaInternalScope>
+            </BylawShield>
         </RequireAuth>
     );
 }
@@ -93,13 +95,14 @@ function WilayaShell() {
 function BranchShell() {
     return (
         <RequireAuth>
-            <RequireSpace space="branch">
-                <MainLayout branchMode />
-            </RequireSpace>
+            <BylawShield>
+                <RequireSpace space="branch">
+                    <MainLayout branchMode />
+                </RequireSpace>
+            </BylawShield>
         </RequireAuth>
     );
 }
-
 
 function AppRoutes() {
     return (
@@ -288,7 +291,7 @@ function AppRoutes() {
                     element={
                         <LazyWrapper>
                             <RequirePortalAdmin>
-                                <PlaceholderPage title="طلبات المساعدة من البوابة" />
+                                <PortalRequestsPage />
                             </RequirePortalAdmin>
                         </LazyWrapper>
                     }
