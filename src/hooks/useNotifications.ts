@@ -61,7 +61,7 @@ export function useNotifications() {
                 // Pending portal registrations
                 supabase
                     .from('external_users')
-                    .select('id, full_name, user_type, created_at')
+                    .select('id, full_name, portal_type, created_at')
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false })
                     .limit(15),
@@ -90,8 +90,8 @@ export function useNotifications() {
                 for (const u of regRes.value.data) {
                     items.push({
                         id: `reg_${u.id}`,
-                        type: u.user_type === 'volunteer' ? 'volunteer' : 'registration',
-                        title: `تسجيل ${REG_LABEL[u.user_type] ?? 'جديد'} جديد`,
+                        type: u.portal_type === 'volunteer' ? 'volunteer' : 'registration',
+                        title: `تسجيل ${REG_LABEL[u.portal_type] ?? 'جديد'} جديد`,
                         body: `${u.full_name ?? 'مجهول'} — بانتظار مراجعة الطلب والموافقة`,
                         timestamp: u.created_at,
                         read: current.has(`reg_${u.id}`),
