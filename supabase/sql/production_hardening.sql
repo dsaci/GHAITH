@@ -245,21 +245,29 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ═══════════════════════════════════════════════════════════════════
 -- 2. FINAL LOCKDOWN: FORBID DIRECT REST FOR EXCLUSIVE RPC USAGE
 -- ───────────────────────────────────────────────────────────────────
--- This ensures that NO sensitive table data can be leaked or modified 
--- via standard PostgREST (supabase-js) calls. Only designated RPCs work.
+-- Aggressive Lockdown: Drops ALL existing policies (killing recursion)
+-- and enforces a single, non-recursive block on all sensitive tables.
 
 DO $$
 DECLARE
   tables_to_lock TEXT[] := ARRAY[
     'families', 'members', 'family_benefits', 'transactions', 
     'portal_requests', 'external_users', 'user_profiles', 
-    'audit_logs', 'beneficiary_portal'
+    'audit_logs', 'beneficiary_portal', 'benefit_receipts'
   ];
   t TEXT;
+  pol RECORD;
 BEGIN
   FOREACH t IN ARRAY tables_to_lock LOOP
-    EXECUTE format('DROP POLICY IF EXISTS "Pure RPC Only Control" ON %I', t);
+    -- 1. Drop ALL existing policies on the table to kill recursion
+    FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = t AND schemaname = 'public' LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, t);
+    END LOOP;
+
+    -- 2. Create the Final "RPC-Only" Barrier
     EXECUTE format('CREATE POLICY "Pure RPC Only Control" ON %I FOR ALL TO authenticated USING (false) WITH CHECK (false)', t);
+    
+    -- 3. Ensure RLS is enabled
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
   END LOOP;
 END;
@@ -608,6 +616,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- SSS. Secure Family Detail Fetcher (Pure RPC)
+CREATE OR REPLACE FUNCTION get_family_by_id_v2(p_id UUID)
+RETURNS JSON AS $$
+DECLARE
+  v_family JSON;
+BEGIN
+  SELECT json_build_object(
+    'id', f.id,
+    'registration_number', f.registration_number,
+    'family_name', f.family_name,
+    'national_id', f.national_id,
+    'phone', f.phone,
+    'address', f.address,
+    'municipality_id', f.municipality_id,
+    'category', f.category,
+    'members_count', f.members_count,
+    'income_level', f.income_level,
+    'monthly_income', f.monthly_income,
+    'housing_status', f.housing_status,
+    'has_social_coverage', f.has_social_coverage,
+    'notes', f.notes,
+    'registration_date', f.registration_date,
+    'status', f.status,
+    'branch_id', f.branch_id,
+    'created_at', f.created_at
+  ) INTO v_family
+  FROM families f
+  WHERE f.id = p_id AND f.is_deleted = false;
+
+  RETURN v_family;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- BBB. Secure Family Benefits Fetcher (Pure RPC)
+CREATE OR REPLACE FUNCTION get_family_benefits_v2(p_family_id UUID)
+RETURNS TABLE (
+  id UUID,
+  benefit_type TEXT,
+  amount NUMERIC,
+  description TEXT,
+  benefit_date TIMESTAMPTZ,
+  occasion_id UUID,
+  notes TEXT,
+  approved_by_name TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    fb.id, fb.benefit_type, fb.amount, fb.description, 
+    fb.benefit_date, fb.occasion_id, fb.notes,
+    (SELECT full_name FROM user_profiles WHERE id = fb.approved_by)
+  FROM family_benefits fb
+  WHERE fb.family_id = p_family_id
+  ORDER BY fb.benefit_date DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- J. Unified Profile Fetcher (Pure RPC)
 -- Securely retrieves the current user's profile (Internal or External)
 CREATE OR REPLACE FUNCTION get_my_profile_v2()
@@ -721,6 +786,84 @@ BEGIN
     p_details::TEXT,
     NOW()
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- S. Secure Audit Log Fetcher (Pure RPC)
+CREATE OR REPLACE FUNCTION get_audit_logs_v2(
+  p_limit INT DEFAULT 100,
+  p_offset INT DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  user_id UUID,
+  user_type TEXT,
+  full_name TEXT,
+  action TEXT,
+  resource_type TEXT,
+  resource_id TEXT,
+  new_values TEXT,
+  created_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    al.id, al.user_id, al.user_type,
+    up.full_name, al.action, al.resource_type,
+    al.resource_id, al.new_values, al.created_at
+  FROM audit_logs al
+  LEFT JOIN user_profiles up ON up.id = al.user_id
+  ORDER BY al.created_at DESC
+  LIMIT p_limit 
+  OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- T. Secure Benefit Receipts Fetcher (Pure RPC)
+CREATE OR REPLACE FUNCTION get_benefit_receipts_v2(
+  p_limit INT DEFAULT 100,
+  p_offset INT DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  receipt_number TEXT,
+  family_id UUID,
+  family_name TEXT,
+  registration_number TEXT,
+  benefit_type TEXT,
+  benefit_value NUMERIC,
+  benefit_description TEXT,
+  status TEXT,
+  created_at TIMESTAMPTZ,
+  created_by_name TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    br.id, br.receipt_number, br.family_id,
+    f.family_name, f.registration_number,
+    br.benefit_type, br.benefit_value, br.benefit_description,
+    br.status, br.created_at,
+    (SELECT full_name FROM user_profiles WHERE id = br.created_by)
+  FROM benefit_receipts br
+  JOIN families f ON f.id = br.family_id
+  ORDER BY br.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- U. Secure Benefit Receipt Status Manager (Pure RPC)
+CREATE OR REPLACE FUNCTION manage_benefit_receipt_status_v2(
+  p_id UUID,
+  p_status TEXT
+)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE benefit_receipts 
+  SET status = p_status, 
+      updated_at = NOW() 
+  WHERE id = p_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

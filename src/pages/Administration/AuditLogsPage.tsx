@@ -5,20 +5,8 @@ import {
     LogIn, LogOut, PlusCircle, Pencil, Trash2,
     Database, Loader2
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { auditService, AuditLog } from '../../services/audit.service';
 import { Badge, StatCard } from '../../components/ui';
-
-interface AuditLog {
-    id: string;
-    created_at: string;
-    user_id: string;
-    user_type: string;
-    action: string;
-    resource_type: string;
-    resource_id: string;
-    new_values: any;
-    ip_address: string;
-}
 
 export default function AuditLogsPage() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -35,18 +23,18 @@ export default function AuditLogsPage() {
     const fetchLogs = async () => {
         try {
             setLoading(true);
-            let query = supabase
-                .from('audit_logs')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            if (filter.action) query = query.filter('action', 'eq', filter.action);
-            if (filter.userType) query = query.filter('user_type', 'eq', filter.userType);
-
-            const { data, error } = await query;
+            const { data, error } = await auditService.getLogs({
+                limit: 50,
+                offset: 0
+            });
+            
             if (error) throw error;
-            setLogs(data || []);
+            
+            let filteredData = data;
+            if (filter.action) filteredData = filteredData.filter((l: any) => l.action === filter.action);
+            if (filter.userType) filteredData = filteredData.filter((l: any) => l.user_type === filter.userType);
+
+            setLogs(filteredData);
         } catch (err) {
             console.error('Error fetching audit logs:', err);
         } finally {

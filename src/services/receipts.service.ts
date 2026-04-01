@@ -98,33 +98,45 @@ export const receiptService = {
     return data;
   },
 
-  // Get all receipts (filtered by RLS automatically)
+  // Get all receipts (Pure RPC)
   async getReceipts() {
-    const { data, error } = await supabase
-      .from('benefit_receipts')
-      .select(`
-        *,
-        family:families(family_name, registration_number),
-        creator:created_by (full_name)
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase.rpc('get_benefit_receipts_v2', {
+        p_limit: 100,
+        p_offset: 0
+      });
+      
+      if (error) throw error;
+      
+      // Map RPC output to match what the frontend expects
+      return (data || []).map((r: any) => ({
+        ...r,
+        family: {
+          family_name: r.family_name,
+          registration_number: r.registration_number
+        },
+        creator: {
+          full_name: r.created_by_name
+        }
+      }));
+    } catch (err) {
+      console.error("Receipts RPC Fetch Error:", err);
+      return [];
+    }
   },
 
-  // Update status (sign, deliver, cancel)
+  // Update status (Pure RPC)
   async updateReceiptStatus(id: string, status: 'signed' | 'delivered' | 'cancelled') {
-    const updateData: any = { status };
-    
-    const { data, error } = await supabase
-      .from('benefit_receipts')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase.rpc('manage_benefit_receipt_status_v2', {
+        p_id: id,
+        p_status: status
+      });
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("Receipt Status RPC Error:", err);
+      throw err;
+    }
   }
 };

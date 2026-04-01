@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Phone, CreditCard, Loader2, Hospital } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { graphqlRequest } from '../../lib/graphql';
-import { GET_MEMBERS_QUERY } from '../../services/queries/member.queries';
+import { Plus, Search, Phone, CreditCard, Loader2, User, MapPin } from 'lucide-react';
 import { Badge, Button, EmptyState } from '../../components/ui';
 import { MSILA_DAIRAS, MSILA_MUNICIPALITIES } from '../../data/msilaData';
 import type { MemberStatus, Member, MembershipType } from '../../types';
+import * as membersService from '../../services/members.service';
 
 const STATUS_LABELS: Record<MemberStatus, string> = { active: 'فعّال', inactive: 'غير فعّال', suspended: 'موقوف', resigned: 'استقال' };
 const STATUS_COLORS: Record<MemberStatus, 'green' | 'gray' | 'red' | 'orange'> = { active: 'green', inactive: 'gray', suspended: 'red', resigned: 'orange' };
@@ -25,68 +23,25 @@ export default function MembersPage() {
     async function fetchMembers() {
         try {
             setLoading(true);
-            let data: any[] = [];
-            let rlsAnomaly = false;
+            const { data, error } = await membersService.getAll();
             
-            // 1. Try GraphQL (Senior Architect's requirement)
-            try {
-                const sessionRes = await supabase.auth.getSession();
-                const accessToken = sessionRes.data.session?.access_token;
-                
-                if (!accessToken) throw new Error('No access token for GraphQL');
+            if (error) throw error;
 
-                const gqlResponse = await graphqlRequest<any>(GET_MEMBERS_QUERY, {}, accessToken);
-                
-                if (!gqlResponse?.membersCollection) {
-                    throw new Error('Malformed GraphQL response: membersCollection missing');
-                }
-
-                data = gqlResponse.membersCollection.edges.map((edge: any) => edge.node);
-                
-                // [SECURITY HARDENING] Anomaly Detection: Compare with REST head count to detect silent RLS failures
-                const { count: restCount, error: countError } = await supabase
-                    .from('members')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('is_deleted', false);
-
-                if (!countError && restCount !== null && data.length < restCount) {
-                    rlsAnomaly = true;
-                    console.error(`[SECURITY] Silent RLS Anomaly Detected! GraphQL returned ${data.length} records, but REST reports ${restCount}. Check RLS policies.`);
-                }
-
-                console.log(`Fetched ${data.length} members via GraphQL ${rlsAnomaly ? '(with RLS anomalies)' : ''}`);
-            } catch (gqlError) {
-                // 2. Fallback to REST (Senior Architect's fail-safe requirement)
-                console.warn('GraphQL Fetch Resilience: Falling back to REST due to error:', gqlError);
-                
-                const { data: restData, error: restError } = await supabase
-                    .from('members')
-                    .select('*, municipalities(name)')
-                    .eq('is_deleted', false)
-                    .order('full_name', { ascending: true });
-
-                if (restError) {
-                    console.error('Critical Failure: Both GraphQL and REST fetch failed.', restError);
-                    throw restError;
-                }
-                data = restData || [];
-            }
-
-            const mapped: Member[] = data.map((m: any) => ({
+            const mapped: Member[] = (data || []).map((m: any) => ({
                 id: m.id,
-                fullName: m.full_name || m.fullName,
+                fullName: m.full_name,
                 phone: m.phone,
                 email: m.email,
                 address: m.address,
-                municipalityName: m.municipalities?.name || 'غير محدد',
+                municipalityName: m.municipality_name || 'غير محدد',
                 occupation: m.occupation,
-                membershipNumber: m.membership_number || m.membershipNumber,
-                membershipDate: m.membership_date || m.membershipDate,
-                membershipType: (m.membership_type || m.membershipType) as MembershipType,
-                status: (m.status) as MemberStatus,
-                annualFeePaid: m.annual_fee_paid ?? m.annualFeePaid,
-                createdAt: m.created_at || m.createdAt,
-            } as Member));
+                membershipNumber: m.membership_number,
+                membershipDate: m.membership_date,
+                membershipType: m.membership_type as MembershipType,
+                status: m.status as MemberStatus,
+                annualFeePaid: m.annual_fee_paid,
+                createdAt: m.created_at,
+            }));
 
             setAllMembers(mapped);
         } catch (err) {
@@ -97,7 +52,10 @@ export default function MembersPage() {
     }
 
     const members = allMembers.filter(m => {
-        const matchSearch = !search || m.fullName.includes(search) || m.membershipNumber.includes(search) || m.occupation?.includes(search);
+        const matchSearch = !search || 
+            (m.fullName || '').includes(search) || 
+            (m.membershipNumber || '').includes(search) || 
+            (m.occupation || '').includes(search);
         const matchStatus = !statusFilter || m.status === statusFilter;
         const matchMunicipality = !municipalityFilter || m.municipalityName === municipalityFilter;
         return matchSearch && matchStatus && matchMunicipality;
@@ -116,28 +74,41 @@ export default function MembersPage() {
     }
 
     return (
-        <div className="space-y-5 animate-fade-in">
-            <div className="page-header">
+        <div className="space-y-5 animate-fade-in" dir="rtl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="page-title">سجل الأعضاء</h2>
+                    <h2 className="text-2xl font-black text-gray-900">سجل الأعضاء</h2>
                     <p className="text-sm text-gray-500 mt-1">{activeCount} عضو فعّال — {unpaidCount} لم يدفعوا الاشتراك</p>
                 </div>
                 <Button icon={<Plus className="w-4 h-4" />}>إضافة عضو</Button>
             </div>
 
             {/* Filters */}
-            <div className="card p-4 flex flex-wrap gap-3">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-3">
                 <div className="relative flex-1 min-w-48">
                     <Search className="absolute top-1/2 -translate-y-1/2 right-3 w-4 h-4 text-gray-400" />
-                    <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder="بحث بالاسم أو رقم العضوية..." className="input-field pr-10 w-full" />
+                    <input 
+                        type="text" 
+                        value={search} 
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="بحث بالاسم أو رقم العضوية..." 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-10 pl-4 focus:ring-4 focus:ring-primary-100 focus:border-primary-500 outline-none transition-all" 
+                    />
                 </div>
-                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="select-field w-auto">
+                <select 
+                    value={statusFilter} 
+                    onChange={e => setStatusFilter(e.target.value)} 
+                    className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-4 focus:ring-primary-100 font-bold text-gray-700"
+                >
                     <option value="">جميع الحالات</option>
                     {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
 
-                <select value={municipalityFilter} onChange={e => setMunicipalityFilter(e.target.value)} className="select-field w-auto min-w-[140px]">
+                <select 
+                    value={municipalityFilter} 
+                    onChange={e => setMunicipalityFilter(e.target.value)} 
+                    className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-4 focus:ring-primary-100 font-bold text-gray-700"
+                >
                     <option value="">جميع البلديات</option>
                     {MSILA_DAIRAS.map(dairaName => (
                         <optgroup key={dairaName} label={dairaName}>
@@ -153,33 +124,41 @@ export default function MembersPage() {
             {members.length === 0 ? <EmptyState title="لا توجد نتائج" /> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {members.map(m => (
-                        <div key={m.id} className="card hover:shadow-md transition-shadow">
+                        <div key={m.id} className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-xl hover:shadow-primary-600/5 transition-all group">
                             <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-700 font-bold text-xl shrink-0">
-                                    {m.occupation?.includes('طبيب') || m.occupation?.includes('دكتور') ? (
-                                        <Hospital className="w-6 h-6" />
-                                    ) : (
-                                        m.fullName.charAt(0)
-                                    )}
+                                <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-2xl shrink-0 group-hover:scale-110 transition-transform">
+                                    {(m.fullName || m.id).charAt(0)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-900 truncate">{m.fullName}</h4>
-                                    <p className="text-xs text-gray-500 font-mono">{m.membershipNumber}</p>
-                                    {m.occupation && <p className="text-xs text-primary-600 mt-0.5">{m.occupation}</p>}
-                                    <div className="flex gap-2 mt-2 flex-wrap">
-                                        <Badge variant={STATUS_COLORS[m.status]}>{STATUS_LABELS[m.status]}</Badge>
-                                        <Badge variant="gray">{TYPE_LABELS[m.membershipType]}</Badge>
-                                        {!m.annualFeePaid && <Badge variant="red">الاشتراك غير مدفوع</Badge>}
+                                    <h4 className="font-black text-gray-900 truncate text-lg">{m.fullName}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{m.membershipNumber}</span>
+                                        <Badge variant={STATUS_COLORS[m.status]}>{STATUS_LABELS[m.status] || m.status}</Badge>
                                     </div>
+                                    {m.occupation && <p className="text-xs text-primary-600 mt-2 font-bold flex items-center gap-1">
+                                        <User className="w-3 h-3" /> {m.occupation}
+                                    </p>}
                                 </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <Phone className="w-3 h-3" />{m.phone}
+                            
+                            <div className="mt-6 pt-4 border-t border-gray-50 space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Phone className="w-4 h-4 text-gray-400" />
+                                    <span className="font-medium">{m.phone}</span>
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <CreditCard className="w-3 h-3" />عضوية منذ {m.membershipDate}
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <MapPin className="w-4 h-4 text-gray-400" />
+                                    <span className="truncate">{m.municipalityName}</span>
                                 </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <CreditCard className="w-4 h-4 text-gray-400" />
+                                    <span>عضوية منذ {m.membershipDate || new Date(m.createdAt).getFullYear()}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex gap-2">
+                                <Badge variant="gray" className="flex-1 justify-center py-1">{TYPE_LABELS[m.membershipType] || m.membershipType}</Badge>
+                                {!m.annualFeePaid && <Badge variant="red" className="flex-1 justify-center py-1 font-black">لم يسدد</Badge>}
                             </div>
                         </div>
                     ))}
