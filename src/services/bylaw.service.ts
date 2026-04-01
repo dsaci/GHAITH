@@ -38,18 +38,16 @@ export const bylawService = {
     return !!data;
   },
 
-  // Record user agreement
+  // Record user agreement using secure RPC to bypass RLS issues
   async recordAgreement(userId: string) {
-    const { error } = await supabase
-      .from('bylaw_acknowledgments')
-      .insert({
-        user_id: userId,
-        user_type: 'internal', // Default for now
-        acknowledged_at: new Date().toISOString(),
-        ip_address: '127.0.0.1' // Frontend mock, backend handles real IP securely
-      });
+    const { data, error } = await supabase.rpc('record_bylaw_agreement', {
+      p_user_id: userId,
+      p_user_type: 'internal',
+      p_ip_address: '127.0.0.1'
+    });
 
     if (error) throw error;
+    if (data === false) throw new Error('Failed to record agreement through RPC');
     return true;
   }
 };
