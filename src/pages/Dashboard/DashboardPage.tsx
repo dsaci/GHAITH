@@ -18,7 +18,7 @@ import QuickBenefitModal from '../../components/modals/QuickBenefitModal';
 import { BylawNoticeModal } from '../../components/modals/BylawNoticeModal';
 import type { DashboardStats } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { getPortalRequests, PortalRequestView } from '../../services/admin.portal.service';
+import { PortalRequestView } from '../../services/admin.portal.service';
 import { useNavigate } from 'react-router-dom';
 import { 
     FileArchive, 
@@ -83,65 +83,35 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
-            const now = new Date();
-            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-            // Use a helper to prevent one failing query from breaking the whole dashboard
-            const wrap = async (promise: Promise<any>) => {
-                try {
-                    const res = await promise;
-                    if (res.error) {
-                        console.warn('Dashboard partial fetch error:', res.error);
-                        return { data: null, count: 0 };
-                    }
-                    return res;
-                } catch (e) {
-                    console.error('Dashboard fatal fetch error:', e);
-                    return { data: null, count: 0 };
-                }
-            };
+            // HARDENED: Unified Pure RPC call (Internal Production Mandate)
+            // Replaces multiple direct REST queries to families, members, transactions, etc.
+            const { data, error } = await supabase.rpc('get_dashboard_stats_v3');
+            
+            if (error) {
+                console.error('Dashboard Hardening Error:', error);
+                // Fallback to empty stats to prevent crash
+                return;
+            }
 
-            const [
-                { count: totalFamilies },
-                { count: activeMembers },
-                { data: transactions },
-                { count: pendingRequests },
-                { count: beneficiariesThisMonth },
-                { count: activitiesThisMonth },
-                { data: recentActs },
-                portalRes
-            ] = await Promise.all([
-                wrap(supabase.from('families').select('*', { count: 'exact', head: true }).eq('is_deleted', false)),
-                wrap(supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('is_deleted', false)),
-                wrap(supabase.from('transactions').select('amount, transaction_type').eq('is_deleted', false)),
-                wrap(supabase.from('portal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
-                wrap(supabase.from('family_benefits').select('*', { count: 'exact', head: true }).gte('benefit_date', firstOfMonth)),
-                wrap(supabase.from('occasions').select('*', { count: 'exact', head: true }).gte('start_date', firstOfMonth).eq('status', 'completed')),
-                wrap(supabase.from('recent_activities').select('*').order('created_at', { ascending: false }).limit(6)),
-                wrap(getPortalRequests({ status: 'pending' }))
-            ]);
+            if (data) {
+                setStats({
+                    totalFamilies: data.totalFamilies || 0,
+                    activeMembers: data.activeMembers || 0,
+                    currentBalance: data.currentBalance || 0,
+                    pendingRequests: data.pendingRequests || 0,
+                    beneficiariesThisMonth: data.beneficiariesThisMonth || 0,
+                    activitiesThisMonth: data.activitiesThisMonth || 0,
+                    totalIncome: data.totalIncome || 0,
+                    totalExpense: data.totalExpense || 0
+                });
 
-            const portalReqs = (portalRes as any)?.data || [];
-            setRecentRequests(portalReqs.slice(0, 5));
-
-            const income = transactions?.filter((t: any) => t.transaction_type === 'income').reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
-            const expense = transactions?.filter((t: any) => t.transaction_type === 'expense').reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
-
-            setStats({
-                totalFamilies: totalFamilies || 0,
-                activeMembers: activeMembers || 0,
-                currentBalance: income - expense,
-                pendingRequests: pendingRequests || 0,
-                beneficiariesThisMonth: beneficiariesThisMonth || 0,
-                activitiesThisMonth: activitiesThisMonth || 0,
-                totalIncome: income,
-                totalExpense: expense
-            });
-
-            if (recentActs) setActivities(recentActs);
+                if (data.recentActivities) setActivities(data.recentActivities);
+                if (data.recentRequests) setRecentRequests(data.recentRequests);
+            }
 
         } catch (error) {
-            console.error('Error in fetchDashboardData:', error);
+            console.error('Fatal Dashboard Error:', error);
         } finally {
             setLoading(false);
         }

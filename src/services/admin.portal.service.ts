@@ -33,16 +33,23 @@ export async function getPendingRegistrations() {
     return { data: await fetchPendingRegistrations(), error: null };
 }
 
-// --- Beneficiary Requests Management ---
+// --- Beneficiary Requests Management (Hardened Pure RPC) ---
 
 export async function getPortalRequests(filters?: { status?: string; municipality?: string }) {
-    let q = supabase.from('view_portal_requests').select('*');
-
-    if (filters?.status) q = q.eq('status', filters.status);
-    if (filters?.municipality) q = q.eq('municipality_name', filters.municipality);
-
-    const { data, error } = await q.order('request_date', { ascending: false });
-    return { data: (data as PortalRequestView[]) || [], error };
+    try {
+        const { data, error } = await supabase.rpc('get_portal_requests_refined', {
+            p_status: filters?.status || null,
+            p_municipality: filters?.municipality || null,
+            p_limit: 50,
+            p_offset: 0
+        });
+        
+        if (error) throw error;
+        return { data: (data as PortalRequestView[]) || [], error: null };
+    } catch (err: any) {
+        console.error("Portal RPC Error:", err);
+        return { data: [], error: err };
+    }
 }
 
 export async function updateRequestStatus(params: {
@@ -50,40 +57,24 @@ export async function updateRequestStatus(params: {
     status: 'approved' | 'rejected' | 'under_review' | 'fulfilled';
     notes?: string;
     reviewerId: string;
-    familyId: string; // Used for notification
+    familyId: string; 
 }) {
-    const { error: updateErr } = await supabase
-        .from('portal_requests')
-        .update({
-            status: params.status,
-            internal_notes: params.notes,
-            reviewed_by: params.reviewerId,
-            reviewed_at: new Date().toISOString()
-        })
-        .eq('id', params.requestId);
-
-    if (updateErr) return { error: updateErr };
-
-    // Send notification to beneficiary
-    const statusLabels: Record<string, string> = {
-        approved: 'مقبول ✅',
-        rejected: 'مرفوض ❌',
-        under_review: 'قيد المراجعة ⏳',
-        fulfilled: 'تم التنفيذ 🎉'
-    };
-
-    await supabase.from('notifications').insert({
-        recipient_type: 'beneficiary',
-        recipient_id: params.familyId,
-        title: `تحديث لطلب المساعدة: ${statusLabels[params.status]}`,
-        message: params.notes || `تم تحديث حالة طلبك إلى: ${statusLabels[params.status]}`,
-        type: params.status === 'rejected' ? 'rejection' : 'approval'
-    });
-
-    return { error: null };
+    try {
+        const { error } = await supabase.rpc('update_portal_request_atomic', {
+            p_request_id: params.requestId,
+            p_status: params.status,
+            p_notes: params.notes || null,
+            p_reviewer_id: params.reviewerId,
+            p_family_id: params.familyId
+        });
+        return { error };
+    } catch (err: any) {
+        console.error("Update Request RPC Error:", err);
+        return { error: err };
+    }
 }
 
-// --- Legacy Functions ---
+// --- Legacy Functions Hardened ---
 
 export async function approveUser(externalUserId: string, approvedBy: string) {
     const { error } = await supabase.rpc('approve_external_user', {
@@ -103,17 +94,17 @@ export async function rejectUser(externalUserId: string, reason: string, rejecte
 }
 
 export async function linkBeneficiary(externalUserId: string, familyId: string, linkedBy: string) {
-    const { data: existing } = await supabase.from('beneficiary_portal').select('id').eq('external_user_id', externalUserId).maybeSingle();
-    const row = {
-        external_user_id: externalUserId,
-        family_id: familyId,
-        linked_at: new Date().toISOString(),
-        linked_by: linkedBy,
-    };
-    if (existing) {
-        return supabase.from('beneficiary_portal').update(row).eq('external_user_id', externalUserId);
+    try {
+        const { error } = await supabase.rpc('link_beneficiary_v2', {
+            p_external_user_id: externalUserId,
+            p_family_id: familyId,
+            p_linked_by: linkedBy
+        });
+        return { error };
+    } catch (err: any) {
+        console.error("Link Beneficiary RPC Error:", err);
+        return { error: err };
     }
-    return supabase.from('beneficiary_portal').insert(row);
 }
 
 
