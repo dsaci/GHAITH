@@ -50,20 +50,20 @@ export default function PortalRequestsPage() {
         else setLoading(true);
 
         try {
-            const from = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
-            const to = from + PAGE_SIZE - 1;
+            const offset = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
 
-            // [PERFORMANCE HARDENING] Using pagination ranges and optimized indexes
-            // This ensures the dashboard remains snappy even with 10k+ requests.
-            const { data, error, count } = await supabase
-                .from('portal_requests_view')
-                .select('*', { count: 'exact' })
-                .order('requested_at', { ascending: false })
-                .range(from, to);
+            // [PURE RPC TRANSITION] Using SECURITY DEFINER RPC to bypass RLS recursion
+            // No direct REST querying on 'portal_requests_view'
+            const { data, error } = await supabase.rpc('get_portal_requests_paginated', {
+                p_limit: PAGE_SIZE,
+                p_offset: offset
+            });
 
             if (error) throw error;
 
-            const newRequests = data || [];
+            const newRequests = (data as any[]) || [];
+            const count = newRequests.length > 0 ? (newRequests[0].total_count as number) : 0;
+
             if (isLoadMore) {
                 setRequests(prev => [...prev, ...newRequests]);
                 setPage(prev => prev + 1);
@@ -74,11 +74,11 @@ export default function PortalRequestsPage() {
 
             // Detect if more records exist for "Load More" logic
             const currentTotal = isLoadMore ? requests.length + newRequests.length : newRequests.length;
-            setHasMore(currentTotal < (count || 0));
+            setHasMore(currentTotal < count);
 
         } catch (error) {
-            console.error('Failed to fetch requests:', error);
-            toast.error('فشل في جلب الطلبات');
+            console.error('Failed to fetch requests via RPC:', error);
+            toast.error('فشل في جلب الطلبات (خطأ RPC)');
         } finally {
             setLoading(false);
             setLoadingMore(false);
@@ -87,18 +87,19 @@ export default function PortalRequestsPage() {
 
     const handleStatusUpdate = async (requestId: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('portal_requests')
-                .update({ status: newStatus })
-                .eq('id', requestId);
+            // [PURE RPC] Status update must go through hardened RPC
+            const { error } = await supabase.rpc('update_portal_request_status', {
+                p_request_id: requestId,
+                p_status: newStatus
+            });
 
             if (error) throw error;
             
             toast.success('تم تحديث حالة الطلب');
-            fetchRequests(false); // Reset to first page to see changes
+            fetchRequests(false); 
         } catch (error) {
-            console.error('Update failed:', error);
-            toast.error('فشل تحديث الحالة');
+            console.error('Update failed via RPC:', error);
+            toast.error('فشل تحديث الحالة (خطأ RPC)');
         }
     };
 

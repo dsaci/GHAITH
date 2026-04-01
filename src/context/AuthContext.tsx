@@ -94,12 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isSupabaseConfigured) return;
         try {
             setIsBylawLoading(true);
-            const needsAck = await bylawService.needsAcknowledgment();
-            setHasAcknowledgedBylaws(!needsAck);
+            const { data, error } = await bylawService.rpcNeedsAcknowledgment();
+            if (error) throw error;
+            setHasAcknowledgedBylaws(!data);
         } catch (err) {
-            console.error('Failed to check bylaw status', err);
-            // On error, we assume true to avoid blocking the user unless it's critical
-            setHasAcknowledgedBylaws(true);
+            console.error('Failed to check bylaw status via RPC', err);
+            // On error, be conservative and assume not signed to avoid bypass, 
+            // but for production UX we can fallback to true if the service is down 
+            // ONLY if strictly required. Pure RPC mandate says use RPC.
+            setHasAcknowledgedBylaws(false); 
         } finally {
             setIsBylawLoading(false);
         }
