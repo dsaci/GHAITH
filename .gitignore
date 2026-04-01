@@ -14,3 +14,6 @@ src/services/auth.service.ts
 .next
 build
 out
+
+.vercel
+.env*.local
