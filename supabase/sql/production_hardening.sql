@@ -62,6 +62,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- C. Advanced RPC for pending registrations (Admin-Only context)
+DROP FUNCTION IF EXISTS get_pending_registrations_v2();
 CREATE OR REPLACE FUNCTION get_pending_registrations_v2()
 RETURNS TABLE (
   id UUID,
@@ -118,6 +119,7 @@ WITH CHECK (false); -- Block all direct REST inserts
 ALTER TABLE external_users ENABLE ROW LEVEL SECURITY;
 
 -- R. Advanced Finance Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_financial_transactions_v2(int,uuid,text,boolean);
 CREATE OR REPLACE FUNCTION get_financial_transactions_v2(
   p_year INT DEFAULT NULL,
   p_branch_id UUID DEFAULT NULL,
@@ -151,6 +153,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- S. Secure Finance Summary (Pure RPC)
+DROP FUNCTION IF EXISTS get_finance_summary_v2(int,uuid);
 CREATE OR REPLACE FUNCTION get_finance_summary_v2(
   p_year INT DEFAULT NULL,
   p_branch_id UUID DEFAULT NULL
@@ -183,6 +186,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- P. Standardized Family Management (Pure RPC)
+DROP FUNCTION IF EXISTS manage_family_v2(uuid,jsonb);
 CREATE OR REPLACE FUNCTION manage_family_v2(
   p_id UUID DEFAULT NULL,
   p_data JSONB DEFAULT '{}'
@@ -221,6 +225,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Q. Standardized Member Management (Pure RPC)
+DROP FUNCTION IF EXISTS manage_member_v2(uuid,text,text,boolean);
 CREATE OR REPLACE FUNCTION manage_member_v2(
   p_id UUID DEFAULT NULL,
   p_role_in_association TEXT DEFAULT NULL,
@@ -242,6 +247,172 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- T. Public Volunteer Submission (Pure RPC)
+-- Securely registers a new volunteer from the public portal
+DROP FUNCTION IF EXISTS submit_public_volunteer(text,text,date,text,text,text,text,text,text);
+CREATE OR REPLACE FUNCTION submit_public_volunteer(
+  p_full_name TEXT,
+  p_phone TEXT,
+  p_birth_date DATE,
+  p_birth_place TEXT,
+  p_municipality_name TEXT,
+  p_occupation TEXT,
+  p_specialization TEXT,
+  p_education_level TEXT,
+  p_reason TEXT
+)
+RETURNS JSON AS $$
+DECLARE
+  v_user_id UUID;
+  v_muni_id UUID;
+BEGIN
+  -- 1. Find Municipality ID
+  SELECT id INTO v_muni_id FROM municipalities WHERE name = p_municipality_name LIMIT 1;
+
+  -- 2. Upsert External User (by phone)
+  INSERT INTO external_users (
+    full_name, phone, birth_date, birth_place, municipality_id, portal_type, status
+  ) VALUES (
+    p_full_name, p_phone, p_birth_date, p_birth_place, v_muni_id, 'volunteer', 'pending'
+  )
+  ON CONFLICT (id) DO NOTHING -- Fallback if ID exists, but we usually expect new
+  RETURNING id INTO v_user_id;
+
+  -- 3. If user didn't return (already exists by phone check - manual since no unique constraint in schema)
+  IF v_user_id IS NULL THEN
+    SELECT id INTO v_user_id FROM external_users WHERE phone = p_phone LIMIT 1;
+    UPDATE external_users SET status = 'pending' WHERE id = v_user_id;
+  END IF;
+
+  -- 4. Create/Update Volunteer Profile
+  INSERT INTO volunteers (
+    external_user_id, profession, education_level, joined_date
+  ) VALUES (
+    v_user_id, p_occupation, p_education_level, CURRENT_DATE
+  )
+  ON CONFLICT (external_user_id) DO UPDATE SET
+    profession = EXCLUDED.profession,
+    education_level = EXCLUDED.education_level;
+
+  -- 5. Audit Log (Phase 3 integration)
+  INSERT INTO audit_logs (
+    user_id, user_type, action, resource_type, resource_id, new_values
+  ) VALUES (
+    v_user_id, 'volunteer', 'create', 'external_users', v_user_id,
+    jsonb_build_object('full_name', p_full_name, 'phone', p_phone)::TEXT
+  );
+
+  RETURN json_build_object('success', true, 'user_id', v_user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- U. Public Help Request Submission (Pure RPC)
+-- Securely registers a help request from the public portal
+DROP FUNCTION IF EXISTS submit_public_help_request(text,text,text,text,text);
+CREATE OR REPLACE FUNCTION submit_public_help_request(
+  p_full_name TEXT,
+  p_phone TEXT,
+  p_municipality_name TEXT,
+  p_aid_type TEXT,
+  p_description TEXT
+)
+RETURNS JSON AS $$
+DECLARE
+  v_user_id UUID;
+  v_muni_id UUID;
+  v_request_id UUID;
+BEGIN
+  -- 1. Find Municipality ID
+  SELECT id INTO v_muni_id FROM municipalities WHERE name = p_municipality_name LIMIT 1;
+
+  -- 2. Upsert External User (by phone)
+  INSERT INTO external_users (
+    full_name, phone, municipality_id, portal_type, status
+  ) VALUES (
+    p_full_name, p_phone, v_muni_id, 'beneficiary', 'pending'
+  )
+  ON CONFLICT (id) DO NOTHING
+  RETURNING id INTO v_user_id;
+
+  IF v_user_id IS NULL THEN
+    SELECT id INTO v_user_id FROM external_users WHERE phone = p_phone LIMIT 1;
+  END IF;
+
+  -- 3. Create Portal Request
+  INSERT INTO portal_requests (
+    requester_id, request_type, description, status, urgency
+  ) VALUES (
+    v_user_id, p_aid_type, p_description, 'pending', 'medium'
+  ) RETURNING id INTO v_request_id;
+
+  -- 4. Audit Log
+  INSERT INTO audit_logs (
+    user_id, user_type, action, resource_type, resource_id, new_values
+  ) VALUES (
+    v_user_id, 'beneficiary', 'create', 'portal_requests', v_request_id,
+    jsonb_build_object('aid_type', p_aid_type)::TEXT
+  );
+
+  RETURN json_build_object('success', true, 'request_id', v_request_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- V. Hardened Trigger Function: log_resource_activity (Pure RPC)
+-- This function runs with elevated permissions to ensure logs are ALWAYS written.
+CREATE OR REPLACE FUNCTION log_resource_activity_v2()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_user_name TEXT;
+  v_description TEXT;
+BEGIN
+  -- 1. Resolve User Name (Internal only)
+  SELECT full_name INTO v_user_name FROM user_profiles WHERE id = auth.uid();
+
+  -- 2. Build Description based on Table and Operation
+  IF (TG_OP = 'INSERT') THEN
+    IF (TG_TABLE_NAME = 'families') THEN
+      v_description := 'تم تسجيل عائلة ' || NEW.family_name;
+    ELSIF (TG_TABLE_NAME = 'members') THEN
+      v_description := 'تمت إضافة العضو ' || NEW.full_name;
+    ELSIF (TG_TABLE_NAME = 'donors') THEN
+      v_description := 'تم تسجيل المحسن ' || NEW.full_name;
+    ELSIF (TG_TABLE_NAME = 'family_benefits') THEN
+      v_description := 'تم تقديم مساعدة لـ عائلة ' || (SELECT family_name FROM families WHERE id = NEW.family_id);
+    ELSIF (TG_TABLE_NAME = 'portal_requests') THEN
+      v_description := 'طلب جديد: ' || NEW.request_type;
+    ELSIF (TG_TABLE_NAME = 'volunteers') THEN
+      v_description := 'تسجيل متطوع جديد';
+    END IF;
+    
+    -- 3. Insert into Dashboard Logs (activity_logs)
+    INSERT INTO activity_logs (user_id, user_name, action_type, resource_type, description)
+    VALUES (auth.uid(), COALESCE(v_user_name, 'نظام غيث'), 'create', TG_TABLE_NAME, v_description);
+    
+    -- 4. Insert into Transactional Logs (audit_logs)
+    INSERT INTO audit_logs (user_id, user_type, action, resource_type, resource_id, new_values)
+    VALUES (auth.uid(), 'internal', 'create', TG_TABLE_NAME, NEW.id, row_to_json(NEW)::TEXT);
+    
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- W. Re-apply Hardened Triggers
+DROP TRIGGER IF EXISTS trg_log_family_v2 ON families;
+CREATE TRIGGER trg_log_family_v2 AFTER INSERT ON families FOR EACH ROW EXECUTE FUNCTION log_resource_activity_v2();
+
+DROP TRIGGER IF EXISTS trg_log_member_v2 ON members;
+CREATE TRIGGER trg_log_member_v2 AFTER INSERT ON members FOR EACH ROW EXECUTE FUNCTION log_resource_activity_v2();
+
+DROP TRIGGER IF EXISTS trg_log_benefit_v2 ON family_benefits;
+CREATE TRIGGER trg_log_benefit_v2 AFTER INSERT ON family_benefits FOR EACH ROW EXECUTE FUNCTION log_resource_activity_v2();
+
+DROP TRIGGER IF EXISTS trg_log_portal_v2 ON portal_requests;
+CREATE TRIGGER trg_log_portal_v2 AFTER INSERT ON portal_requests FOR EACH ROW EXECUTE FUNCTION log_resource_activity_v2();
+
+DROP TRIGGER IF EXISTS trg_log_volunteer_v2 ON volunteers;
+CREATE TRIGGER trg_log_volunteer_v2 AFTER INSERT ON volunteers FOR EACH ROW EXECUTE FUNCTION log_resource_activity_v2();
+
 -- ═══════════════════════════════════════════════════════════════════
 -- 2. FINAL LOCKDOWN: FORBID DIRECT REST FOR EXCLUSIVE RPC USAGE
 -- ───────────────────────────────────────────────────────────────────
@@ -253,7 +424,9 @@ DECLARE
   tables_to_lock TEXT[] := ARRAY[
     'families', 'members', 'family_benefits', 'transactions', 
     'portal_requests', 'external_users', 'user_profiles', 
-    'audit_logs', 'beneficiary_portal', 'benefit_receipts'
+    'audit_logs', 'activity_logs', 'beneficiary_portal', 
+    'benefit_receipts', 'volunteers', 'donor_profiles',
+    'bylaw_acknowledgments'
   ];
   t TEXT;
   pol RECORD;
@@ -264,10 +437,15 @@ BEGIN
       EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, t);
     END LOOP;
 
-    -- 2. Create the Final "RPC-Only" Barrier
-    EXECUTE format('CREATE POLICY "Pure RPC Only Control" ON %I FOR ALL TO authenticated USING (false) WITH CHECK (false)', t);
+    -- 2. Restore Read Visibility (SELECT) for Authenticated Users
+    EXECUTE format('CREATE POLICY "Authenticated Select Access" ON %I FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL)', t);
     
-    -- 3. Ensure RLS is enabled
+    -- 3. Block all other direct REST mutations (Pure RPC Mandate)
+    EXECUTE format('CREATE POLICY "Pure RPC Mutation Lockdown" ON %I FOR INSERT WITH CHECK (false)', t);
+    EXECUTE format('CREATE POLICY "Pure RPC Update Lockdown" ON %I FOR UPDATE USING (false) WITH CHECK (false)', t);
+    EXECUTE format('CREATE POLICY "Pure RPC Delete Lockdown" ON %I FOR DELETE USING (false)', t);
+
+    -- 4. Ensure RLS is enabled
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
   END LOOP;
 END;
@@ -514,6 +692,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_bylaw_ack_user_version
 ON bylaw_acknowledgments(user_id, bylaw_version);
 
 -- M. Robust Families Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_families_v2(TEXT, UUID, TEXT, INT, INT);
 CREATE OR REPLACE FUNCTION get_families_v2(
   p_status TEXT DEFAULT NULL,
   p_branch_id UUID DEFAULT NULL,
@@ -563,6 +742,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- N. Atomic Benefit & Financial Recording (Pure RPC)
 -- This is the "Hardened Core" of the platform's social aid logic.
+DROP FUNCTION IF EXISTS record_family_benefit_atomic_v2(UUID, TEXT, NUMERIC, TEXT, TIMESTAMPTZ, UUID, TEXT);
 CREATE OR REPLACE FUNCTION record_family_benefit_atomic_v2(
   p_family_id UUID,
   p_benefit_type TEXT,
@@ -617,6 +797,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- SSS. Secure Family Detail Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_family_by_id_v2(uuid);
 CREATE OR REPLACE FUNCTION get_family_by_id_v2(p_id UUID)
 RETURNS JSON AS $$
 DECLARE
@@ -650,6 +831,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- BBB. Secure Family Benefits Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_family_benefits_v2(uuid);
 CREATE OR REPLACE FUNCTION get_family_benefits_v2(p_family_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -675,6 +857,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- J. Unified Profile Fetcher (Pure RPC)
 -- Securely retrieves the current user's profile (Internal or External)
+DROP FUNCTION IF EXISTS get_my_profile_v2();
 CREATE OR REPLACE FUNCTION get_my_profile_v2()
 RETURNS JSON AS $$
 DECLARE
@@ -722,6 +905,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- K. Atomic External User Registration (Pure RPC)
 -- Handles external_user creation and specific portal metadata in one transaction.
+DROP FUNCTION IF EXISTS register_external_user_v3(UUID, TEXT, TEXT, TEXT, TEXT, JSONB);
 CREATE OR REPLACE FUNCTION register_external_user_v3(
   p_auth_id UUID,
   p_portal_type TEXT,
@@ -765,6 +949,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- L. Hardened Audit Logger (Pure RPC)
+DROP FUNCTION IF EXISTS secure_audit_log_v2(TEXT, TEXT, TEXT, JSONB, TEXT);
 CREATE OR REPLACE FUNCTION secure_audit_log_v2(
   p_action TEXT,
   p_resource_type TEXT,
@@ -790,6 +975,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- S. Secure Audit Log Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_audit_logs_v2(INT, INT);
 CREATE OR REPLACE FUNCTION get_audit_logs_v2(
   p_limit INT DEFAULT 100,
   p_offset INT DEFAULT 0
@@ -820,6 +1006,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- T. Secure Benefit Receipts Fetcher (Pure RPC)
+DROP FUNCTION IF EXISTS get_benefit_receipts_v2(INT, INT);
 CREATE OR REPLACE FUNCTION get_benefit_receipts_v2(
   p_limit INT DEFAULT 100,
   p_offset INT DEFAULT 0
@@ -854,6 +1041,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- U. Secure Benefit Receipt Status Manager (Pure RPC)
+DROP FUNCTION IF EXISTS manage_benefit_receipt_status_v2(UUID, TEXT);
 CREATE OR REPLACE FUNCTION manage_benefit_receipt_status_v2(
   p_id UUID,
   p_status TEXT
