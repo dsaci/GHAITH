@@ -20,14 +20,18 @@ export async function getTransactions(filters?: { year?: number; branch_id?: str
 
 export async function createTransaction(row: Record<string, unknown>) {
     try {
-        // HARDENED: Secure Transaction Management RPC
-        const { data, error } = await supabase.rpc('manage_transaction_v2', {
-            p_id: null,
+        // HARDENED: Use specific V3 RPC for transaction submission to bypass RLS securely
+        const { data, error } = await supabase.rpc('submit_financial_transaction_v3', {
             p_data: row
         });
-        if (error) throw error;
+        
+        if (error) {
+            console.error("Create Transaction RPC Error Details:", error);
+            throw error;
+        }
         return { data, error: null };
     } catch (err: any) {
+        console.error("Create Transaction Exception:", err);
         return { data: null, error: err };
     }
 }
