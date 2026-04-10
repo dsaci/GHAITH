@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 export async function getTransactions(filters?: { year?: number; branch_id?: string; type?: string; is_wilaya_level?: boolean }) {
     try {
-        // HARDENED: Filterable Pure RPC call (v3 handles year/branch more flexibly)
+        // HARDENED: Filterable Pure RPC call (v3 handles blank branch_id and history better)
         const { data, error } = await supabase.rpc('get_financial_transactions_v3', {
             p_year: filters?.year || null,
             p_branch_id: filters?.branch_id || null,
@@ -10,10 +10,7 @@ export async function getTransactions(filters?: { year?: number; branch_id?: str
             p_is_wilaya_level: filters?.is_wilaya_level ?? null
         });
         
-        if (error) {
-            console.error("Fetch Transactions RPC Error Details:", error);
-            throw error;
-        }
+        if (error) throw error;
         return { data: data || [], error: null };
     } catch (err: any) {
         console.error("Fetch Transactions Exception:", err);
@@ -23,15 +20,12 @@ export async function getTransactions(filters?: { year?: number; branch_id?: str
 
 export async function createTransaction(row: Record<string, unknown>) {
     try {
-        // HARDENED: Use specific V3 RPC for transaction submission to bypass RLS securely
+        // HARDENED: Secure v3 RPC for submission
         const { data, error } = await supabase.rpc('submit_financial_transaction_v3', {
             p_data: row
         });
         
-        if (error) {
-            console.error("Create Transaction RPC Error Details:", error);
-            throw error;
-        }
+        if (error) throw error;
         return { data, error: null };
     } catch (err: any) {
         console.error("Create Transaction Exception:", err);
