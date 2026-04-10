@@ -130,6 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             isActive: profile.is_active
                         };
                         useAuthStore.getState().setInternalUser(u);
+                        // Record login activity on session restoration for precise tracking
+                        loginNotificationService.recordLogin(u.id);
                     }
                 } catch (err) {
                     console.error('Session restore failed.', err);
