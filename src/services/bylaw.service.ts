@@ -1,3 +1,4 @@
+// v2.1.0 — bylaw agreement now uses RPC (record_bylaw_agreement) — no direct INSERT
 import { supabase } from '../lib/supabase';
 
 export interface BylawRule {
