@@ -39,21 +39,30 @@ export default function FinancePage() {
         setLoading(true);
         try {
             const currentYear = new Date().getFullYear();
-            // Fetch everything initially to avoid "Empty List" frustration
-            let { data } = await getTransactions({ type: typeFilter || undefined });
             
-            const s = await getSummary(currentYear);
-            const g = await getGlobalSummary();
-            
+            // 1. Fetch transactions FIRST (Guarantee visibility)
+            const { data, error: txError } = await getTransactions({ type: typeFilter || undefined });
+            if (txError) {
+                console.error("Finance Page: Transaction fetch failed", txError);
+            }
             setTransactions(data || []);
-            setStats({
-                income_total: s.income_total,
-                expense_total: s.expense_total,
-                balance: s.balance,
-                globalBalance: g.balance
-            });
+
+            // 2. Fetch summaries (Don't let these block the UI if they fail)
+            try {
+                const s = await getSummary(currentYear);
+                const g = await getGlobalSummary();
+                setStats({
+                    income_total: s.income_total,
+                    expense_total: s.expense_total,
+                    balance: s.balance,
+                    globalBalance: g.balance
+                });
+            } catch (sumErr) {
+                console.warn("Summaries failed to load", sumErr);
+            }
+
         } catch (err) {
-            console.error('Error fetching finance data:', err);
+            console.error('Critical Error in finance page:', err);
         } finally {
             setLoading(false);
         }
