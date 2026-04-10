@@ -165,7 +165,7 @@ export async function submitPublicVolunteerRequest(form: {
         p_reason:            form.reason?.trim()     || null,
     };
 
-    const { data, error } = await supabase.rpc('submit_public_volunteer', sanitizedForm);
+    const { data, error } = await supabase.rpc('submit_public_volunteer_v_safe', sanitizedForm);
 
     if (error) {
         console.error('RPC Error (Volunteer):', error);
