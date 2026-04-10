@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 export async function getTransactions(filters?: { year?: number; branch_id?: string; type?: string; is_wilaya_level?: boolean }) {
     try {
-        // HARDENED: Filterable Pure RPC call (v3 handles blank branch_id and history better)
+        // FORCE: Pull latest 100 transactions regardless of year if none specified
         const { data, error } = await supabase.rpc('get_financial_transactions_v3', {
             p_year: filters?.year || null,
             p_branch_id: filters?.branch_id || null,
@@ -13,7 +13,6 @@ export async function getTransactions(filters?: { year?: number; branch_id?: str
         if (error) throw error;
         return { data: data || [], error: null };
     } catch (err: any) {
-        console.error("Fetch Transactions Exception:", err);
         return { data: [], error: err };
     }
 }

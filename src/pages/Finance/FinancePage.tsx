@@ -39,13 +39,8 @@ export default function FinancePage() {
         setLoading(true);
         try {
             const currentYear = new Date().getFullYear();
-            let { data } = await getTransactions({ year: currentYear, type: typeFilter || undefined });
-            
-            // If current year (2026) is empty, try fetching all transactions to show context
-            if (!data || data.length === 0) {
-                const retry = await getTransactions({ type: typeFilter || undefined });
-                data = retry.data;
-            }
+            // Fetch everything initially to avoid "Empty List" frustration
+            let { data } = await getTransactions({ type: typeFilter || undefined });
             
             const s = await getSummary(currentYear);
             const g = await getGlobalSummary();
