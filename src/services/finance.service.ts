@@ -2,18 +2,21 @@ import { supabase } from '../lib/supabase';
 
 export async function getTransactions(filters?: { year?: number; branch_id?: string; type?: string; is_wilaya_level?: boolean }) {
     try {
-        // HARDENED: Filterable Pure RPC call
-        const { data, error } = await supabase.rpc('get_financial_transactions_v2', {
+        // HARDENED: Filterable Pure RPC call (v3 handles year/branch more flexibly)
+        const { data, error } = await supabase.rpc('get_financial_transactions_v3', {
             p_year: filters?.year || null,
             p_branch_id: filters?.branch_id || null,
             p_type: filters?.type || null,
             p_is_wilaya_level: filters?.is_wilaya_level ?? null
         });
         
-        if (error) throw error;
+        if (error) {
+            console.error("Fetch Transactions RPC Error Details:", error);
+            throw error;
+        }
         return { data: data || [], error: null };
     } catch (err: any) {
-        console.error("Fetch Transactions RPC Error:", err);
+        console.error("Fetch Transactions Exception:", err);
         return { data: [], error: err };
     }
 }
