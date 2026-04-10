@@ -8,10 +8,8 @@ import {
     Clock, 
     AlertCircle,
     UserPlus,
-    Heart,
-    HandHelping
-} from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { Heart, HandHelping } from 'lucide-react';
+import { getPortalRequestsPaginatedBasic, updatePortalRequestStatusBasic } from '../../../services/admin.portal.service';
 import { LoadingSpinner } from '../../../components/ui';
 import toast from 'react-hot-toast';
 
@@ -52,12 +50,8 @@ export default function PortalRequestsPage() {
         try {
             const offset = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
 
-            // [PURE RPC TRANSITION] Using SECURITY DEFINER RPC to bypass RLS recursion
-            // No direct REST querying on 'portal_requests_view'
-            const { data, error } = await supabase.rpc('get_portal_requests_paginated', {
-                p_limit: PAGE_SIZE,
-                p_offset: offset
-            });
+            // [PURE RPC TRANSITION] Using Service Layer instead of raw RPC directly in React
+            const { data, error } = await getPortalRequestsPaginatedBasic(PAGE_SIZE, offset);
 
             if (error) throw error;
 
@@ -87,11 +81,8 @@ export default function PortalRequestsPage() {
 
     const handleStatusUpdate = async (requestId: string, newStatus: string) => {
         try {
-            // [PURE RPC] Status update must go through hardened RPC
-            const { error } = await supabase.rpc('update_portal_request_status', {
-                p_request_id: requestId,
-                p_status: newStatus
-            });
+            // [PURE RPC] Status update must go through Service Layer
+            const { error } = await updatePortalRequestStatusBasic(requestId, newStatus);
 
             if (error) throw error;
             
