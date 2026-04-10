@@ -1,3 +1,4 @@
+// v2.1.0 — RPC layer patched: JSONB cast fix, safe overload wrappers
 import { supabase } from '../lib/supabase';
 
 export interface PortalRequestView {
