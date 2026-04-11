@@ -78,8 +78,7 @@ export default function FinancePage() {
         try {
             await createTransaction({
                 ...formData,
-                amount: Number(formData.amount),
-                is_deleted: false
+                amount: Number(formData.amount)
             });
             setShowModal(false);
             fetchData();
