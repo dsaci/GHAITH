@@ -47,13 +47,13 @@ export async function createTransaction(form: {
 
         // The atomic function returns {success, transaction_id, new_balance, message}
         if (data && !data.success) {
-            return { data: null, error: new Error(data.message) };
+            throw new Error(data.message);
         }
 
         return { data, error: null };
     } catch (err: any) {
         console.error("createTransaction error:", err);
-        return { data: null, error: err };
+        throw err;
     }
 }
 

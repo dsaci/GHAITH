@@ -41,11 +41,15 @@ export default function FinancePage() {
             const currentYear = new Date().getFullYear();
             
             // 1. Fetch transactions FIRST (Guarantee visibility)
-            const { data, error: txError } = await getTransactions({ type: typeFilter || undefined });
-            if (txError) {
-                console.error("Finance Page: Transaction fetch failed", txError);
+            // Fix bug where typeFilter caused year to become NaN
+            const txResponse = await getTransactions({ 
+                year: currentYear, 
+                type: typeFilter || undefined 
+            });
+            if (txResponse.error) {
+                console.error("Finance Page: Transaction fetch failed", txResponse.error);
             }
-            setTransactions(data || []);
+            setTransactions(txResponse.data || []);
 
             // 2. Fetch summaries (Don't let these block the UI if they fail)
             try {
@@ -79,8 +83,9 @@ export default function FinancePage() {
             });
             setShowModal(false);
             fetchData();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error creating transaction:', err);
+            alert(`حدث خطأ أثناء إضافة المعاملة: ${err.message}`);
         } finally {
             setIsSaving(false);
         }
