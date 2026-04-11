@@ -45,9 +45,10 @@ export async function createTransaction(form: {
 
         if (error) throw error;
 
-        // The atomic function returns {success, transaction_id, new_balance, message}
-        if (data && !data.success) {
-            throw new Error(data.message);
+        // Typecast to any to bypass Supabase JSON strict typing
+        const result = data as any;
+        if (result && result.success === false) {
+            throw new Error(result.message || 'خطأ غير معروف في المعاملة');
         }
 
         return { data, error: null };
