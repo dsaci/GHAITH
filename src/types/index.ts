@@ -27,6 +27,7 @@ export interface User {
     email: string;
     full_name: string;
     fullName?: string;
+    username?: string;
     role: UserRole;
     space: UserSpace;
     branch_id?: string;

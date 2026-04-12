@@ -223,7 +223,7 @@ export default function FinancialReportPage() {
                 report_year: reportYear,
                 status: 'approved',
                 uploaded_by: user.id,
-                uploader_name: user.fullName,
+                uploader_name: user.fullName ?? '',
                 is_confidential: true,
             });
             setSaveMsg('تم حفظ التقرير في المنصة.');

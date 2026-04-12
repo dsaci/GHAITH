@@ -22,9 +22,11 @@ export default function MainLayout({ branchMode = false }: { branchMode?: boolea
         }
         
         if (user) {
-            bylawService.checkUserAgreement(user.id).then(hasAgreed => {
-                if (!hasAgreed) setNeedsAgreement(true);
-            }).catch(console.error);
+            bylawService.needsAcknowledgment()
+                .then((needsAck: boolean) => {
+                    if (needsAck) setNeedsAgreement(true);
+                })
+                .catch((err: Error) => console.error('Bylaw check failed:', err.message));
         }
     }, [user]);
 

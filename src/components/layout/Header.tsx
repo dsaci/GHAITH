@@ -280,7 +280,7 @@ export default function Header() {
                 {user && (
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm">
-                            {user.fullName.charAt(0)}
+                            {(user.fullName ?? '').charAt(0)}
                         </div>
                     </div>
                 )}

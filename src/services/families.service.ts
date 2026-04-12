@@ -1,9 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Family } from '../types';
 
-const logService = (action: string, data?: any) => {
-    console.log(`[FamiliesService] ${action}:`, data);
-};
+
 
 type FamilyRow = Record<string, unknown>;
 

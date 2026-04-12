@@ -176,7 +176,7 @@ export default function LiteraryReportPage() {
                 report_year: reportYear,
                 status: 'approved',
                 uploaded_by: user.id,
-                uploader_name: user.fullName,
+                uploader_name: user.fullName ?? '',
                 is_confidential: false,
                 description: 'تقرير أدبي مُنشأ من المنصة',
             });

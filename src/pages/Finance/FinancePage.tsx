@@ -4,6 +4,11 @@ import { getTransactions, getSummary, createTransaction, getGlobalSummary } from
 import { Badge, Button, LoadingSpinner } from '../../components/ui';
 import type { TransactionType } from '../../types';
 
+interface FinanceRow {
+  id: string
+  [key: string]: string | number | boolean | null
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
     member_fees: 'اشتراكات الأعضاء', donations: 'تبرعات', grants: 'منح',
     government_support: 'دعم حكومي', activity_revenue: 'عائد أنشطة', other_income: 'دخل آخر',
@@ -166,17 +171,17 @@ export default function FinancePage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {transactions.map(t => (
+                                {(transactions as FinanceRow[]).map((t: FinanceRow) => (
                                     <tr key={t.id} className="table-row group">
-                                        <td className="table-cell text-gray-500 text-xs font-bold">{t.transaction_date}</td>
+                                        <td className="table-cell text-gray-500 text-xs font-bold">{String(t.transaction_date ?? '')}</td>
                                         <td className="table-cell">
                                             <Badge variant={t.transaction_type === 'income' ? 'green' : 'red'}>
                                                 {t.transaction_type === 'income' ? 'دخل' : 'مصروف'}
                                             </Badge>
                                         </td>
-                                        <td className="table-cell text-xs font-bold text-gray-700">{CATEGORY_LABELS[t.category] || t.category}</td>
-                                        <td className="table-cell text-sm text-gray-600 max-w-xs truncate" title={t.description}>{t.description}</td>
-                                        <td className="table-cell text-xs font-medium text-gray-500">{PAY_LABELS[t.payment_method]}</td>
+                                        <td className="table-cell text-xs font-bold text-gray-700">{CATEGORY_LABELS[String(t.category)] || String(t.category ?? '')}</td>
+                                        <td className="table-cell text-sm text-gray-600 max-w-xs truncate" title={String(t.description ?? '')}>{String(t.description ?? '')}</td>
+                                        <td className="table-cell text-xs font-medium text-gray-500">{PAY_LABELS[String(t.payment_method)]}</td>
                                         <td className={`table-cell font-black ${t.transaction_type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
                                             {t.transaction_type === 'income' ? '+' : '-'}{Number(t.amount).toLocaleString('ar-DZ')} دج
                                         </td>

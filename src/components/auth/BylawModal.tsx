@@ -39,7 +39,7 @@ export default function BylawModal({ onAgreed }: BylawModalProps) {
     if (!user) return;
     setSaving(true);
     try {
-      await bylawService.recordAgreement(user.id);
+      await bylawService.recordAgreement();
       onAgreed();
     } catch (error) {
       console.error('Failed to record agreement:', error);

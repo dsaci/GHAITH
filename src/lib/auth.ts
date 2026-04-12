@@ -66,3 +66,47 @@ export const authLib = {
     restoreBeneficiarySession: async () => null, // Placeholder if needed
     logout
 };
+
+export interface ExternalRegisterPayload {
+  email: string
+  password: string
+  fullName: string
+  role: 'beneficiary' | 'donor' | 'volunteer'
+}
+
+export async function loginExternal(payload: {
+  email: string
+  password: string
+}): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: payload.email,
+    password: payload.password,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function registerExternal(
+  payload: ExternalRegisterPayload
+): Promise<void> {
+  const { error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    options: { data: { full_name: payload.fullName, role: payload.role } },
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function loginBeneficiary(payload: {
+  email: string
+  password: string
+}): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: payload.email,
+    password: payload.password,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function restoreBeneficiarySession(): Promise<void> {
+  await supabase.auth.getSession()
+}

@@ -15,10 +15,14 @@ export default function PortalLoginPage() {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const res = await loginExternal(email, password);
-        setLoading(false);
-        if (res.ok && res.redirect) navigate(res.redirect, { replace: true });
-        else setError(res.error || 'فشل تسجيل الدخول');
+        try {
+            await loginExternal({ email, password });
+            navigate('/portal', { replace: true });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'فشل تسجيل الدخول');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
