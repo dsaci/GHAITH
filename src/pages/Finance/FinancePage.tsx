@@ -14,7 +14,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PAY_LABELS: Record<string, string> = { cash: 'نقداً', bank_transfer: 'تحويل بنكي', check: 'شيك', other: 'آخر' };
 
 export default function FinancePage() {
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Record<string, unknown>[]>([]);
     const [stats, setStats] = useState({ income_total: 0, expense_total: 0, balance: 0, globalBalance: 0 });
     const [typeFilter, setTypeFilter] = useState<TransactionType | ''>('');
     const [loading, setLoading] = useState(true);
@@ -82,9 +82,10 @@ export default function FinancePage() {
             });
             setShowModal(false);
             fetchData();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error creating transaction:', err);
-            alert(`حدث خطأ أثناء إضافة المعاملة: ${err.message}`);
+            const msg = err instanceof Error ? err.message : 'Unknown error';
+            alert(`حدث خطأ أثناء إضافة المعاملة: ${msg}`);
         } finally {
             setIsSaving(false);
         }

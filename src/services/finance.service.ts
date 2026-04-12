@@ -12,9 +12,9 @@ export async function getTransactions(filters?: { year?: number; branch_id?: str
         
         if (error) throw error;
         return { data: data || [], error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("getTransactions error:", err);
-        return { data: [], error: err };
+        return { data: [], error: err instanceof Error ? err : new Error('Unknown error') };
     }
 }
 
@@ -45,16 +45,19 @@ export async function createTransaction(form: {
 
         if (error) throw error;
 
-        // Typecast to any to bypass Supabase JSON strict typing
-        const result = data as any;
-        if (result && result.success === false) {
-            throw new Error(result.message || 'خطأ غير معروف في المعاملة');
+        // Safely narrow the JSON response without type casting using type predicate / safe check
+        if (data && typeof data === 'object' && 'success' in (data as object)) {
+            // using "as" only up to 'Record' to satisfy TS on 'in' check, while avoiding 'any' and 'as unknown'
+            const obj = data as Record<string, string | boolean | number | undefined>;
+            if (obj.success === false) {
+                 throw new Error(String(obj.message || 'خطأ غير معروف في المعاملة'));
+            }
         }
 
         return { data, error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("createTransaction error:", err);
-        throw err;
+        throw err instanceof Error ? err : new Error('Unknown error');
     }
 }
 
@@ -73,9 +76,9 @@ export async function getSummary(year?: number, branch_id?: string) {
             balance: data?.balance || 0, 
             error: null 
         };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("getSummary error:", err);
-        return { income_total: 0, expense_total: 0, balance: 0, error: err };
+        return { income_total: 0, expense_total: 0, balance: 0, error: err instanceof Error ? err : new Error('Unknown error') };
     }
 }
 
@@ -99,8 +102,8 @@ export async function getFinancialDashboard() {
             .select('*');
         if (error) throw error;
         return { data: data || [], error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("getFinancialDashboard error:", err);
-        return { data: [], error: err };
+        return { data: [], error: err instanceof Error ? err : new Error('Unknown error') };
     }
 }
