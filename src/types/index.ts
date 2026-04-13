@@ -25,15 +25,15 @@ export interface Municipality {
 export interface User {
     id: string;
     email: string;
-    full_name: string;
+    full_name?: string;
     fullName?: string;
     username?: string;
     role: UserRole;
-    space: UserSpace;
+    space?: UserSpace;
     branch_id?: string;
     branchId?: string;
     phone?: string;
-    status: 'active' | 'inactive';
+    status?: 'active' | 'inactive';
     is_active?: boolean;
     isActive?: boolean;
     lastLogin?: string;

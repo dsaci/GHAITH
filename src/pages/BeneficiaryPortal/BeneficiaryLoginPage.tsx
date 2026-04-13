@@ -15,9 +15,10 @@ export default function BeneficiaryLoginPage() {
     useEffect(() => {
         // Auto-redirect if already logged in as beneficiary
         const checkSession = async () => {
-            const hasSession = await authLib.restoreBeneficiarySession();
-            if (hasSession) {
-                navigate('/beneficiary/dashboard', { replace: true });
+            try {
+                await authLib.restoreBeneficiarySession();
+            } catch (e) {
+                console.error(e);
             }
         };
         checkSession();
