@@ -30,7 +30,7 @@ export default function AuditLogsPage() {
             
             if (error) throw error;
             
-            let filteredData = data;
+            let filteredData = (data ?? []) as unknown as any[];
             if (filter.action) filteredData = filteredData.filter((l: any) => l.action === filter.action);
             if (filter.userType) filteredData = filteredData.filter((l: any) => l.user_type === filter.userType);
 

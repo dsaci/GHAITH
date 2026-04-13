@@ -27,7 +27,7 @@ export default function MembersPage() {
             
             if (error) throw error;
 
-            const mapped: Member[] = (data || []).map((m: any) => ({
+            const mapped: Member[] = ((data ?? []) as unknown as any[]).map((m: any) => ({
                 id: m.id,
                 fullName: m.full_name,
                 phone: m.phone,

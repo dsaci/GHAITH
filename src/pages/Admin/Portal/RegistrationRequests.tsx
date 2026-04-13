@@ -22,12 +22,12 @@ interface PortalRequest {
 
 interface ExternalUser {
     id: string;
-    full_name: string;
-    phone: string;
+    full_name?: string;
+    phone?: string;
     email?: string;
     social_media?: string;
-    portal_type: 'volunteer' | 'donor' | 'beneficiary';
-    status: string;
+    portal_type?: string;
+    status?: string;
     address?: string;
     birth_date?: string;
     birth_place?: string;
@@ -35,6 +35,9 @@ interface ExternalUser {
     created_at: string;
     volunteers?: VolunteerData[];
     portal_requests?: PortalRequest[];
+    request_type?: string;
+    description?: string;
+    urgency?: string;
 }
 
 export default function RegistrationRequests() {
@@ -91,8 +94,9 @@ export default function RegistrationRequests() {
     };
 
     const filtered = requests.filter(r => {
-        const matchType = filter === 'all' || r.portal_type === filter;
-        const matchSearch = r.full_name.toLowerCase().includes(search.toLowerCase()) || r.phone.includes(search);
+        const pType = r.portal_type ?? r.request_type ?? '';
+        const matchType = filter === 'all' || pType === filter;
+        const matchSearch = (r.full_name ?? '').toLowerCase().includes(search.toLowerCase()) || (r.phone ?? '').includes(search);
         return matchType && matchSearch;
     });
 
@@ -162,11 +166,11 @@ export default function RegistrationRequests() {
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-gray-500 font-bold">
-                                            {req.full_name.charAt(0)}
+                                            {(req.full_name ?? '').charAt(0)}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100">{req.full_name}</h3>
-                                            <Badge variant={TYPE_COLORS[req.portal_type]}>{TYPE_LABELS[req.portal_type]}</Badge>
+                                            <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100">{req.full_name ?? ''}</h3>
+                                            <Badge variant={TYPE_COLORS[req.portal_type ?? req.request_type ?? 'beneficiary']}>{TYPE_LABELS[req.portal_type ?? req.request_type ?? 'beneficiary']}</Badge>
                                         </div>
                                     </div>
                                     <div className="text-left text-xs text-gray-400">
@@ -180,7 +184,7 @@ export default function RegistrationRequests() {
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
                                         <Phone className="w-4 h-4" />
-                                        <span>{req.phone}</span>
+                                        <span>{req.phone ?? ''}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
                                         <MapPin className="w-4 h-4" />
@@ -194,14 +198,14 @@ export default function RegistrationRequests() {
                                     )}
                                 </div>
 
-                                {req.portal_type === 'beneficiary' && req.portal_requests?.[0] && (
+                                {(req.portal_type === 'beneficiary' || req.request_type === 'beneficiary') && (req.portal_requests?.[0] || req.description) && (
                                     <div className="p-4 bg-orange-50 dark:bg-orange-500/10 rounded-xl border border-orange-100 dark:border-orange-500/20">
                                         <div className="flex items-center gap-2 mb-2 font-bold text-orange-700 dark:text-orange-400">
                                             <FileDown className="w-4 h-4" />
                                             <span>تفاصيل طلب المساعدة:</span>
                                         </div>
                                         <p className="text-sm text-gray-700 dark:text-slate-300 bg-white/50 dark:bg-transparent p-3 rounded-lg border border-orange-50 dark:border-transparent">
-                                            {req.portal_requests[0].description}
+                                            {req.description ?? req.portal_requests?.[0]?.description ?? ''}
                                         </p>
                                     </div>
                                 )}
@@ -224,11 +228,11 @@ export default function RegistrationRequests() {
                                             <VolunteerFormPDF
                                                 municipality={req.address || ''}
                                                 data={{
-                                                    full_name: req.full_name,
-                                                    phone: req.phone,
-                                                    address: req.address || '',
-                                                    birth_date: req.birth_date || '',
-                                                    birth_place: req.birth_place || '',
+                                                    full_name: req.full_name ?? '',
+                                                    phone: req.phone ?? '',
+                                                    address: req.address ?? '',
+                                                    birth_date: req.birth_date ?? '',
+                                                    birth_place: req.birth_place ?? '',
                                                     profession: req.volunteers?.[0]?.occupation || '',
                                                     specialization: req.volunteers?.[0]?.specialization,
                                                     education_level: req.volunteers?.[0]?.education_level,
@@ -238,7 +242,7 @@ export default function RegistrationRequests() {
                                                 }}
                                             />
                                         }
-                                        fileName={`استمارة_${req.full_name}.pdf`}
+                                        fileName={`استمارة_${req.full_name ?? 'متطوع'}.pdf`}
                                         className="flex-1 min-w-[120px]"
                                     >
                                         {({ loading: pdfLoading }) => (

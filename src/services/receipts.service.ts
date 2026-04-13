@@ -109,7 +109,7 @@ export const receiptService = {
       if (error) throw error;
       
       // Map RPC output to match what the frontend expects
-      return (data || []).map((r: any) => ({
+      return ((data ?? []) as unknown as any[]).map((r: any) => ({
         ...r,
         family: {
           family_name: r.family_name,
