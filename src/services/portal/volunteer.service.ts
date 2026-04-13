@@ -3,7 +3,7 @@ import type { ExternalRegisterPayload } from '../../lib/auth';
 import { registerExternal } from '../../lib/auth';
 
 export async function register(formData: ExternalRegisterPayload) {
-    return registerExternal('volunteer', formData);
+    return registerExternal({ ...formData, role: 'volunteer' });
 }
 
 export async function getMyProfile() {

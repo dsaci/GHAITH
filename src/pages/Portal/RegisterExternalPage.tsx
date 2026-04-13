@@ -30,12 +30,11 @@ export default function RegisterExternalPage() {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const res = await registerExternal(type, { 
+        const res = await registerExternal({ 
             email, 
             password, 
-            full_name, 
-            phone,
-            registration_number: type === 'beneficiary' ? registrationNumber : undefined
+            fullName: full_name, 
+            role: type
         });
         setLoading(false);
         if (res.ok) navigate('/portal/awaiting-approval', { replace: true });

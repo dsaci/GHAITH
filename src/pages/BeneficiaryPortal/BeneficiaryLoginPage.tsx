@@ -34,7 +34,13 @@ export default function BeneficiaryLoginPage() {
         setError('');
 
         try {
-            await authLib.loginBeneficiary(regNo, phone);
+            const result = await authLib.loginBeneficiary({ email: regNo, password: phone });
+            if (!result.ok) {
+                setError(result.error ?? 'فشل تسجيل الدخول. تأكد من صحة البيانات.');
+                setLoading(false);
+                return;
+            }
+            
             setIsSuccess(true);
             setTimeout(() => {
                 navigate('/beneficiary/dashboard', { replace: true });

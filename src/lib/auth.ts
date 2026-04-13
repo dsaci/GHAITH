@@ -87,24 +87,26 @@ export async function loginExternal(payload: {
 
 export async function registerExternal(
   payload: ExternalRegisterPayload
-): Promise<void> {
+): Promise<{ ok: boolean; error: string | null }> {
   const { error } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
     options: { data: { full_name: payload.fullName, role: payload.role } },
   })
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, error: null }
 }
 
 export async function loginBeneficiary(payload: {
   email: string
   password: string
-}): Promise<void> {
+}): Promise<{ ok: boolean; error: string | null }> {
   const { error } = await supabase.auth.signInWithPassword({
     email: payload.email,
     password: payload.password,
   })
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, error: null }
 }
 
 export async function restoreBeneficiarySession(): Promise<void> {

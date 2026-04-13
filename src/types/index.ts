@@ -36,6 +36,7 @@ export interface User {
     status: 'active' | 'inactive';
     is_active?: boolean;
     isActive?: boolean;
+    lastLogin?: string;
 }
 
 
