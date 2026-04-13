@@ -33,13 +33,14 @@ export default function MembersPage() {
                 phone: m.phone,
                 email: m.email,
                 address: m.address,
-                municipalityName: m.municipality_name || 'غير محدد',
+                municipalityName: m.municipality_id,
                 occupation: m.occupation,
                 membershipNumber: m.membership_number,
                 membershipDate: m.membership_date,
                 membershipType: m.membership_type as MembershipType,
                 status: m.status as MemberStatus,
                 annualFeePaid: m.annual_fee_paid,
+                gender: m.gender ?? '',
                 createdAt: m.created_at,
             }));
 
