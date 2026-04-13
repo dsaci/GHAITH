@@ -178,7 +178,7 @@ export default function FinancePage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {(transactions as FinanceRow[]).map((t: FinanceRow) => (
+                                {((transactions ?? []) as unknown as FinanceRow[]).map((t: FinanceRow) => (
                                     <tr key={t.id} className="table-row group">
                                         <td className="table-cell text-gray-500 text-xs font-bold">{String(t.transaction_date ?? '')}</td>
                                         <td className="table-cell">
