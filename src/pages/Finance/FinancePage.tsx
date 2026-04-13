@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Download, Loader2 } from 'lucide-react';
-import { getTransactions, getSummary, createTransaction, getGlobalSummary } from '../../services/finance.service';
+import { getTransactions, getSummary, createTransaction, getGlobalSummary, reverseTransaction } from '../../services/finance.service';
+import type { FinanceRow } from '../../services/finance.service';
 import { Badge, Button, LoadingSpinner } from '../../components/ui';
 import type { TransactionType } from '../../types';
-
-interface FinanceRow {
-  id: string
-  [key: string]: string | number | boolean | null
-}
 
 const CATEGORY_LABELS: Record<string, string> = {
     member_fees: 'اشتراكات الأعضاء', donations: 'تبرعات', grants: 'منح',
@@ -75,6 +71,17 @@ export default function FinancePage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleReverse = async (id: string) => {
+        if (!confirm('هل تريد التراجع عن هذه المعاملة؟ سيتم إنشاء قيد معاكس.')) return;
+        const { error } = await reverseTransaction(id);
+        if (error) {
+            alert('فشل التراجع: ' + error.message);
+            return;
+        }
+        // Refresh everything
+        await fetchData();
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -165,7 +172,7 @@ export default function FinancePage() {
                         <table className="w-full bg-white">
                             <thead>
                                 <tr className="bg-gray-50/50">
-                                    {['التاريخ', 'النوع', 'الفئة', 'الوصف', 'طريقة الدفع', 'المبلغ'].map(h => (
+                                    {['التاريخ', 'النوع', 'الفئة', 'الوصف', 'طريقة الدفع', 'المبلغ', 'الرصيد التراكمي', ''].map(h => (
                                         <th key={h} className="table-header py-4">{h}</th>
                                     ))}
                                 </tr>
@@ -184,6 +191,25 @@ export default function FinancePage() {
                                         <td className="table-cell text-xs font-medium text-gray-500">{PAY_LABELS[String(t.payment_method)]}</td>
                                         <td className={`table-cell font-black ${t.transaction_type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
                                             {t.transaction_type === 'income' ? '+' : '-'}{Number(t.amount).toLocaleString('ar-DZ')} دج
+                                        </td>
+                                        <td className={`table-cell font-bold ${Number(t.running_balance) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                            {Number(t.running_balance).toLocaleString('ar-DZ')} دج
+                                        </td>
+                                        <td className="table-cell">
+                                            {!t.is_reversal && !t.reversal_of_id && (
+                                                <button
+                                                    onClick={() => handleReverse(t.id)}
+                                                    className="text-xs text-rose-500 border border-rose-200 rounded px-2 py-1 hover:bg-rose-50 transition"
+                                                >
+                                                    تراجع
+                                                </button>
+                                            )}
+                                            {t.is_reversal && (
+                                                <span className="text-xs text-gray-400">قيد تراجع</span>
+                                            )}
+                                            {t.reversal_of_id && !t.is_reversal && (
+                                                <span className="text-xs text-amber-500">تم التراجع</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

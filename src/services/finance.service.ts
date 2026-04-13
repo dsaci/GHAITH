@@ -1,5 +1,21 @@
 import { supabase } from '../lib/supabase';
 
+export interface FinanceRow {
+  id: string
+  transaction_type: 'income' | 'expense'
+  amount: number
+  category: string
+  description: string
+  payment_method: string
+  transaction_date: string
+  created_at: string
+  branch_id: string | null
+  is_wilaya_level: boolean
+  is_reversal: boolean
+  reversal_of_id: string | null
+  running_balance: number
+}
+
 // ═══ FETCH TRANSACTIONS (v4 - bulletproof) ═══
 export async function getTransactions(filters?: { year?: number; branch_id?: string; type?: string; is_wilaya_level?: boolean }) {
     try {
@@ -107,3 +123,30 @@ export async function getFinancialDashboard() {
         return { data: [], error: err instanceof Error ? err : new Error('Unknown error') };
     }
 }
+
+// ═══ REVERSE TRANSACTION (معاملة عكسية) ═══
+export async function reverseTransaction(
+  transactionId: string,
+  reason: string = 'تراجع عن المعاملة'
+): Promise<{ data: unknown; error: null } | { data: null; error: Error }> {
+  try {
+    const { data, error } = await supabase
+      .rpc('reverse_financial_transaction', {
+        p_transaction_id: transactionId,
+        p_reason: reason,
+      })
+    if (error) throw error
+    const obj = data as Record<string, unknown>
+    if (obj?.success === false) {
+      throw new Error(String(obj.message ?? 'فشل التراجع'))
+    }
+    return { data, error: null }
+  } catch (err: unknown) {
+    console.error('reverseTransaction error:', err)
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error')
+    }
+  }
+}
+
