@@ -4,7 +4,6 @@ export async function getAll(filters?: { branch_id?: string; status?: string }) 
     try {
         // HARDENED: Paginated/Filtered Pure RPC call
         const { data, error } = await supabase.rpc('get_members_v2', {
-            p_status: filters?.status || null,
             p_branch_id: filters?.branch_id || null
         });
         

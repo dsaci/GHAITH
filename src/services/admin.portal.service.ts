@@ -51,7 +51,7 @@ export async function getPortalRequests(filters?: { status?: string; municipalit
             p_offset:       0
         });
         if (error) throw error;
-        return { data: (data as PortalRequestView[]) || [], error: null };
+        return { data: (data ?? []) as unknown as PortalRequestView[], error: null };
     } catch (err: any) {
         console.error("Portal RPC Error:", err);
         return { data: [], error: err };
@@ -87,7 +87,7 @@ export async function getPortalRequestsPaginatedBasic(pageSize: number, offset: 
             p_offset: offset
         });
         if (error) throw error;
-        return { data: (data as any[]) || [], error: null };
+        return { data: (data ?? []) as unknown as any[], error: null };
     } catch (err: any) {
         console.error("Portal RPC Error:", err);
         return { data: [], error: err };
